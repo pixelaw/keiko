@@ -1,0 +1,33 @@
+projectName: keiko
+nameSpace: main
+appType:
+  frontend: webapp
+
+replicaSet: 1
+
+webappContainerService:
+  type: ClusterIP  # {{ .Values.webappContainerService.type }}
+  port: 3000       # {{ .Values.webappContainerService.port }}
+
+katanaContainerService:
+  type: ClusterIP  # {{ .Values.katanaContainerService.type }}
+  port: 5050       # {{ .Values.katanaContainerService.port }}
+
+toriiContainerService:
+  type: ClusterIP  # {{ .Values.toriiContainerService.type }}
+  port: 8080       # {{ .Values.toriiContainerService.port }}
+
+grpcToriiContainerService:
+  type: ClusterIP  # {{ .Values.grpcToriiContainerService.type }}
+  port: 50051      # {{ .Values.grpcToriiContainerService.port }}
+
+domainName: oostvoort.work                # {{ .Values.domainName }}
+
+subDomainName: 
+  keiko: keiko.aw                 # {{ .Values.subDomainName.keiko }}
+  katana: katana.keiko.aw           # {{ .Values.subDomainName.katana }}
+  torii: torii.keiko.aw             # {{ .Values.subDomainName.torii }}
+  grpcTorii: grpc.keiko.aw    # {{ .Values.subDomainName.grpcTorii }}
+
+
+dockerImage: oostvoort/keiko:latest
