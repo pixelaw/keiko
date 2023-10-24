@@ -12,6 +12,7 @@ use axum::response::Response;
 use axum::routing::{get, on, get_service, MethodFilter};
 use jsonrpsee_http_client::{HttpClient, HttpClientBuilder};
 use log::{debug, error};
+use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
 use tokio::time::sleep;
 use tower_http::add_extension::AddExtensionLayer;
@@ -22,7 +23,7 @@ use crate::api::accounts_manipulation::get_accounts;
 
 #[derive(Clone)]
 pub struct ServerState {
-    pub json_rpc_client: HttpClient
+    pub json_rpc_client: HttpClient,
 }
 
 async fn run_command_manager(manager: CommandManager) {
@@ -32,7 +33,7 @@ async fn run_command_manager(manager: CommandManager) {
 async fn run_deploy_contracts(
     json_rpc_client: HttpClient,
     katana_port: String,
-    world_address: Arc<Mutex<String>>
+    world_address: Arc<Mutex<String>>,
 ) {
     let current_directory = current_dir()
         .unwrap()
@@ -50,7 +51,7 @@ async fn run_deploy_contracts(
         } else {
             match get_accounts(&json_rpc_client).await.first() {
                 Some(master) => {
-                    let world_address_inner = match run_sozo(&katana_port, &manifest_json, &scarb_dir, &master.private_key, &master.address){
+                    let world_address_inner = match run_sozo(&katana_port, &manifest_json, &scarb_dir, &master.private_key, &master.address) {
                         Ok(address) => address,
                         Err(e) => {
                             println!("Could not migrate contracts: {}", e.to_string());
@@ -61,7 +62,7 @@ async fn run_deploy_contracts(
                     };
 
                     if world_address_inner.is_empty() {
-                        break
+                        break;
                     }
 
                     if let Ok(mut world_address_lock) = world_address.lock() {
@@ -99,27 +100,24 @@ async fn run_deploy_contracts(
                                      rpc_url,
                                      current_directory,
                                      world_address_inner
-                        ))
+                        )),
                     );
 
                     torii.start_command().await;
-                },
-                None => error!("Account not found"),
+                }
+                None => error!("Account not found "),
             }
-
             break;
         }
     }
 }
 
 
-
 #[tokio::main]
 async fn main() {
     let katana_port = get_env("KATANA_PORT", "5050");
-
     let server_port = get_env("SERVER_PORT", "3000");
-    let server_port: u16 =  server_port.parse().unwrap();
+    let server_port: u16 = server_port.parse().unwrap();
 
     let world_address = Arc::new(Mutex::new(String::new()));
 
@@ -152,7 +150,7 @@ async fn main() {
             "/api/state",
             get(api::state_management::save_state)
                 .on(MethodFilter::PUT, api::state_management::load_state)
-                .on(MethodFilter::DELETE, api::state_management::reset_state)
+                .on(MethodFilter::DELETE, api::state_management::reset_state),
         )
         .route("/api/accounts", get(api::accounts_manipulation::handler))
         .route("/api/world-address", get(move || {
@@ -177,10 +175,22 @@ async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], server_port));
     debug!("Server started on http://0.0.0.0${server_port}");
 
-    axum::Server::bind(&addr)
-        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .unwrap();
+    let server = axum::Server::bind(&addr)
+        .serve(router.into_make_service_with_connect_info::<SocketAddr>());
+
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
+
+    tokio::select! {
+        _ = server => {
+            // This arm will run if the server shuts down by itself.
+            println!("Stopping server...");
+
+        }
+        _ = sigterm.recv() => {
+            // This arm will run if a SIGINT signal is received.
+            println!("sigterm received, stopping server...");
+        }
+    }
 
     // Cancel the command manager task when the server stops
     katana.abort();
