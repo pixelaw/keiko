@@ -1,6 +1,8 @@
 name: Docker build and deploy to argoCD
 on:
   push:
+    branches:
+      - main  
     tags:
       - "*"
 
