@@ -51,9 +51,44 @@ COPY ./server/Cargo.toml /app/server/Cargo.toml
 # Build the binary
 RUN cargo build --release
 
-FROM oostvoort/dojo:v0.3.0
+FROM debian:bookworm-slim as keiko
+
+ARG DOJO_VERSION
+
+RUN if [ -z "$DOJO_VERSION" ]; then echo "VERSION argument is required" && exit 1; fi
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    jq \
+    git-all \
+    build-essential \
+    curl
+RUN apt-get autoremove && apt-get clean
+
+# Get Rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+
+#Install Scarb
+RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh --output install.sh
+RUN chmod +x ./install.sh
+RUN export PATH=$HOME/.local/bin:$PATH && ./install.sh
+RUN echo 'export PATH=$HOME/.local/bin:$PATH' >> $HOME/.bashrc
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Install dojo
+SHELL ["/bin/bash", "-c"]
+RUN curl -L https://install.dojoengine.org | bash
+RUN source ~/.bashrc
+ENV PATH="/root/.dojo/bin:${PATH}"
+RUN dojoup -v $DOJO_VERSION
+
+# TODO copy the dojo_examples, build them
 
 WORKDIR /opt
+
+# Now the actual keiko
 
 COPY --from=builder /app/server/target/release/server .
 COPY ./server/static ./static
