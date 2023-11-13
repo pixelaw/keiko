@@ -1,4 +1,5 @@
-FROM node:18-alpine AS node_deps
+# Cache the dependencies of the Dashboard
+FROM node:18-bookworm-slim AS dashboard_deps
 
 WORKDIR /app
 
@@ -9,10 +10,10 @@ COPY ./dashboard/package.json ./dashboard/yarn.lock ./
 RUN yarn install --frozen-lockfile
 
 # Now copy all the sources so we can compile
-FROM node:18-alpine AS node_builder
+FROM node:18-bookworm-slim AS dashboard_builder
 WORKDIR /app
 COPY ./dashboard .
-COPY --from=node_deps /app/node_modules ./node_modules
+COPY --from=dashboard_deps /app/node_modules ./node_modules
 
 # Build the webapp
 RUN yarn build --mode production
@@ -23,7 +24,7 @@ FROM rust:1 AS chef
 RUN cargo install cargo-chef
 WORKDIR /app/server
 
-FROM chef AS planner
+FROM chef AS server_planner
 
 # Copy needed directories
 COPY ./server/src /app/server/src
@@ -32,13 +33,13 @@ COPY ./server/Cargo.toml /app/server/Cargo.toml
 
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef AS builder
+FROM chef AS server_builder
 
 # Install DEV dependencies and others.
 RUN apt-get update -y && \
     apt-get install -y net-tools build-essential python3 python3-pip valgrind
 
-COPY --from=planner /app/server/recipe.json recipe.json
+COPY --from=server_planner /app/server/recipe.json recipe.json
 
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -63,12 +64,14 @@ RUN apt-get update && \
     jq \
     git-all \
     build-essential \
-    curl
+    curl \
+    nodejs \
+    npm
 RUN apt-get autoremove && apt-get clean
 
-# Get Rust
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+## Get Rust
+#RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+#RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 
 #Install Scarb
 RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh --output install.sh
@@ -86,13 +89,13 @@ RUN dojoup -v $DOJO_VERSION
 
 # TODO copy the dojo_examples, build them
 
-WORKDIR /opt
+WORKDIR /keiko
 
-# Now the actual keiko
-
-COPY --from=builder /app/server/target/release/server .
+# Server
+COPY --from=server_builder /app/server/target/release/server .
 COPY ./server/static ./static
-COPY ./server/contracts ./contracts
-COPY --from=node_builder /app/dist ./static/keiko
 
-CMD ["/opt/server"]
+# Dashboard
+COPY --from=dashboard_builder /app/dist ./static/keiko
+
+CMD ["/keiko/server"]
