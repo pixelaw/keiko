@@ -1,5 +1,6 @@
 mod api;
 
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::env::current_dir;
 use std::net::SocketAddr;
@@ -10,6 +11,7 @@ use axum::Router;
 use axum::http::Method;
 use axum::response::Response;
 use axum::routing::{get, on, get_service, MethodFilter};
+use dojo_world::manifest::Manifest;
 use jsonrpsee_http_client::{HttpClient, HttpClientBuilder};
 use log::{debug, error};
 use tokio::signal::unix::{signal, SignalKind};
@@ -20,10 +22,13 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::cors::{Any, CorsLayer};
 use server::{CommandManager, extract_contract_args, get_env, is_port_open, run_sozo};
 use crate::api::accounts_manipulation::get_accounts;
+use crate::api::manifest_manipulation::{get_manifest, store_manifest};
 
 #[derive(Clone)]
 pub struct ServerState {
     pub json_rpc_client: HttpClient,
+    pub store: Arc<tokio::sync::Mutex<HashMap<String, Manifest>>>
+
 }
 
 async fn run_command_manager(manager: CommandManager) {
@@ -120,6 +125,7 @@ async fn main() {
     let server_port: u16 = server_port.parse().unwrap();
 
     let world_address = Arc::new(Mutex::new(String::new()));
+    let store = Arc::new(tokio::sync::Mutex::new(HashMap::<String, Manifest>::new()));
 
     let katana = CommandManager::new(
         "katana",
@@ -160,16 +166,20 @@ async fn main() {
                 Ok::<_, Infallible>(Response::new(world_address_clone))
             }
         }))
+        .route("/manifests/:app_name",
+               get(get_manifest)
+                   .on(MethodFilter::POST, store_manifest)
+        )
         .route("/api/fund", get(api::funds_manipulation::handler))
         .route("/api/block", on(MethodFilter::POST, api::block_manipulation::handler))
         .nest_service("/keiko/assets", get_service(ServeDir::new("./static/keiko/assets")))
         .nest_service("/keiko", get_service(ServeFile::new("./static/keiko/index.html")))
-        .nest_service("/world/manifest.json", get_service(ServeFile::new("./contracts/target/dev/manifest.json")))
         .nest_service("/assets", get_service(ServeDir::new("./static/assets")))
         .fallback_service(get_service(ServeFile::new("./static/index.html")))
         .layer(cors)
         .layer(AddExtensionLayer::new(ServerState {
-            json_rpc_client
+            json_rpc_client,
+            store
         }));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], server_port));
