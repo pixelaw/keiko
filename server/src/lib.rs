@@ -2,9 +2,9 @@ use std::env;
 use std::fs::File;
 use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
+use dojo_world::manifest::Manifest;
 use log::{error, info};
 use tokio::sync::RwLock;
-use serde_json::Value;
 use thiserror::Error;
 use serde::Deserialize;
 
@@ -150,19 +150,19 @@ pub fn run_sozo(
         .stderr(Stdio::piped())
         .output() {
         Ok(_) => {
-            // Open the file
-            let file = File::open(manifest_json)?;
 
-            // Deserialize the JSON content
-            let data: Value = serde_json::from_reader(file)?;
-
-            // Extract the "world" object and then the "address" property
-            match data.get("world") {
-                Some(world) => match world.get("address") {
-                    Some(address) => Ok(address.as_str().unwrap().to_string()),
-                    None => Err(KeikoError::WorldAddressNotFound),
-                },
-                None => Err(KeikoError::WorldAddressNotFound),
+            let manifest = Manifest::load_from_path(manifest_json);
+            match manifest {
+                Ok(manifest) => {
+                    match manifest.world.address {
+                        Some(address) => Ok(address.to_string()),
+                        None => Err(KeikoError::WorldAddressNotFound)
+                    }
+                }
+                Err(error) => {
+                    println!("{}", error.to_string());
+                    Err(KeikoError::SozoMigrateFailed)
+                }
             }
         }
         Err(_) => Err(KeikoError::SozoMigrateFailed)
