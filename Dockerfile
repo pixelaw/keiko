@@ -91,6 +91,9 @@ RUN dojoup -v $DOJO_VERSION
 
 WORKDIR /keiko
 
+# Contracts
+COPY ./server/contracts ./contracts
+
 # Server
 COPY --from=server_builder /app/server/target/release/server .
 COPY ./server/static ./static

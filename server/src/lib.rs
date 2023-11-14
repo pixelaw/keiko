@@ -160,7 +160,7 @@ pub fn run_sozo(
                     }
                 }
                 Err(error) => {
-                    println!("{}", error.to_string());
+                    println!("Manifest Issue: {}", error.to_string());
                     Err(KeikoError::SozoMigrateFailed)
                 }
             }
