@@ -1,148 +1,46 @@
-mod api;
-
 use std::collections::HashMap;
-use std::convert::Infallible;
-use std::env::current_dir;
 use std::net::SocketAddr;
-use std::process::Command;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use axum::Router;
-use axum::http::Method;
-use axum::response::Response;
-use axum::routing::{get, on, get_service, MethodFilter};
+use crate::args::KeikoArgs;
+use clap::{Parser};
 use dojo_world::manifest::Manifest;
-use jsonrpsee_http_client::{HttpClient, HttpClientBuilder};
-use log::{debug, error};
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
-use tokio::time::sleep;
+use std::process::Command;
+use std::sync::Arc;
+use axum::http::Method;
+use axum::Router;
+use axum::routing::{get, get_service, MethodFilter, on};
+use keiko_api::server_state::ServerState;
 use tower_http::add_extension::AddExtensionLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::cors::{Any, CorsLayer};
-use server::{CommandManager, extract_contract_args, get_env, is_port_open, run_sozo};
-use crate::api::accounts_manipulation::get_accounts;
-use crate::api::manifest_manipulation::{get_manifest, store_manifest};
+use keiko_api::handlers::{katana, keiko};
+use crate::utils::run_torii;
 
-#[derive(Clone)]
-pub struct ServerState {
-    pub json_rpc_client: HttpClient,
-    pub store: Arc<tokio::sync::Mutex<HashMap<String, Manifest>>>
-
-}
-
-async fn run_command_manager(manager: CommandManager) {
-    manager.start_command().await;
-}
-
-async fn run_deploy_contracts(
-    json_rpc_client: HttpClient,
-    katana_port: String,
-    world_address: Arc<Mutex<String>>,
-) {
-    let current_directory = current_dir()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string();
-    let (manifest_json, scarb_dir, rpc_url) =
-        (format!("{}/contracts/target/dev/manifest.json", &current_directory),
-         format!("{}/contracts/Scarb.toml", &current_directory),
-         format!("http://localhost:{}", &katana_port));
-
-    loop {
-        if is_port_open(katana_port.parse().unwrap()) {
-            sleep(Duration::from_secs(1)).await;
-        } else {
-            match get_accounts(&json_rpc_client).await.first() {
-                Some(master) => {
-                    let world_address_inner = match run_sozo(&katana_port, &manifest_json, &scarb_dir, &master.private_key, &master.address) {
-                        Ok(address) => address,
-                        Err(e) => {
-                            println!("Could not migrate contracts: {}", e.to_string());
-                            error!("Could not migrate contracts: {}", e.to_string());
-
-                            String::new()
-                        }
-                    };
-
-                    if world_address_inner.is_empty() {
-                        break;
-                    }
-
-                    if let Ok(mut world_address_lock) = world_address.lock() {
-                        *world_address_lock = world_address_inner.clone();
-                    }
-
-                    let systems = extract_contract_args(&manifest_json);
-
-                    let mut base_args = vec![
-                        "--manifest-path".to_string(),
-                        scarb_dir.clone(),
-                        "run".to_string(),
-                        "post_deploy".to_string(),
-                        format!("WORLD_ADDRESS={}", &world_address_inner),
-                        format!("PRIVATE_KEY={}", &master.private_key),
-                        format!("ACCOUNT_ADDRESS={}", &master.address),
-                        format!("RPC_URL={}", &rpc_url),
-                    ];
-
-                    if let Ok(systems) = systems {
-                        base_args.extend(systems);
-                    }
-
-                    Command::new("scarb")
-                        .args(base_args)
-                        .spawn()
-                        .expect("Default authorizations set");
-
-                    let torii = CommandManager::new(
-                        "torii",
-                        Some(format!("\
-                            --rpc {} \
-                            --database sqlite:///{}/indexer.db \
-                            -w {}",
-                                     rpc_url,
-                                     current_directory,
-                                     world_address_inner
-                        )),
-                    );
-
-                    torii.start_command().await;
-                }
-                None => error!("Account not found "),
-            }
-            break;
-        }
-    }
-}
-
+mod args;
+mod utils;
 
 #[tokio::main]
 async fn main() {
-    let katana_port = get_env("KATANA_PORT", "5050");
-    let server_port = get_env("SERVER_PORT", "3000");
-    let server_port: u16 = server_port.parse().unwrap();
-
-    let world_address = Arc::new(Mutex::new(String::new()));
+    let config = KeikoArgs::parse();
     let store = Arc::new(tokio::sync::Mutex::new(HashMap::<String, Manifest>::new()));
 
-    let katana = CommandManager::new(
-        "katana",
-        Some(format!("-p {katana_port} --dev")));
-    let katana = task::spawn(run_command_manager(katana));
+    let katana = match config.can_run_katana() {
+        true => {
+            Some(task::spawn(async move {
+                Command::new("katana")
+                    .arg("--dev")
+                    .spawn()
+                    .expect("Failed to start process");
+            }))
+        }
+        false => None
+    };
 
-    // Build json rpc client
-    let json_rpc_client = HttpClientBuilder::default()
-        .build(format!("http://localhost:{katana_port}"))
-        .unwrap();
-
-    let deploy_contracts = task::spawn(
-        run_deploy_contracts(
-            json_rpc_client.clone(),
-            katana_port,
-            Arc::clone(&world_address))
-    );
+    let torii = match config.can_run_torii() {
+        true =>Some(task::spawn(run_torii(config.clone()))),
+        false => None
+    };
 
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
@@ -151,39 +49,39 @@ async fn main() {
         .allow_origin(Any)
         .allow_headers(Any);
 
-    let router = Router::new()
+    let mut router = Router::new();
+
+    if config.can_run_katana() {
+        router = router
+            .route(
+                "/api/state",
+                get(katana::state::save_state)
+                    .on(MethodFilter::PUT, katana::state::load_state)
+                    .on(MethodFilter::DELETE, katana::state::reset_state),
+            )
+            .route("/api/accounts", get(katana::account::handler))
+            .route("/api/fund", get(katana::funds::handler))
+            .route("/api/block", on(MethodFilter::POST, katana::block::handler))
+    }
+
+
+    router = router
         .route(
-            "/api/state",
-            get(api::state_management::save_state)
-                .on(MethodFilter::PUT, api::state_management::load_state)
-                .on(MethodFilter::DELETE, api::state_management::reset_state),
+            "/manifests/:app_name",
+               get(keiko::manifest::get_manifest)
+                   .on(MethodFilter::POST, keiko::manifest::store_manifest)
         )
-        .route("/api/accounts", get(api::accounts_manipulation::handler))
-        .route("/api/world-address", get(move || {
-            let world_address_lock = world_address.lock().unwrap();
-            let world_address_clone = world_address_lock.clone();
-            async move {
-                Ok::<_, Infallible>(Response::new(world_address_clone))
-            }
-        }))
-        .route("/manifests/:app_name",
-               get(get_manifest)
-                   .on(MethodFilter::POST, store_manifest)
-        )
-        .route("/api/fund", get(api::funds_manipulation::handler))
-        .route("/api/block", on(MethodFilter::POST, api::block_manipulation::handler))
         .nest_service("/keiko/assets", get_service(ServeDir::new("./static/keiko/assets")))
         .nest_service("/keiko", get_service(ServeFile::new("./static/keiko/index.html")))
-        .nest_service("/assets", get_service(ServeDir::new("./static/assets")))
-        .fallback_service(get_service(ServeFile::new("./static/index.html")))
+        .nest_service("/assets", get_service(ServeDir::new(config.server.static_path.join("assets"))))
+        .fallback_service(get_service(ServeFile::new(config.server.static_path.join("index.html"))))
         .layer(cors)
         .layer(AddExtensionLayer::new(ServerState {
-            json_rpc_client,
+            json_rpc_client: config.json_rpc_client(),
             store
         }));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], server_port));
-    debug!("Server started on http://0.0.0.0${server_port}");
+    let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
 
     let server = axum::Server::bind(&addr)
         .serve(router.into_make_service_with_connect_info::<SocketAddr>());
@@ -202,7 +100,14 @@ async fn main() {
         }
     }
 
-    // Cancel the command manager task when the server stops
-    katana.abort();
-    deploy_contracts.abort();
+
+    if katana.is_some() {
+        let katana = katana.unwrap();
+        katana.abort();
+    }
+
+    if torii.is_some() {
+        let torii = torii.unwrap();
+        torii.abort();
+    }
 }

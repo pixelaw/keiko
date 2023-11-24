@@ -2,7 +2,7 @@ use axum::{Extension, Json};
 use axum::response::IntoResponse;
 use jsonrpsee_http_client::HttpClient;
 use serde::Deserialize;
-use crate::ServerState;
+use crate::server_state::ServerState;
 
 #[derive(Deserialize)]
 pub struct FundAddress {

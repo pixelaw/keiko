@@ -4,13 +4,12 @@ use jsonrpsee_core::client::ClientT;
 use jsonrpsee_core::params::ArrayParams;
 use jsonrpsee_http_client::{HttpClient};
 use serde::{Deserialize, Serialize};
-use starknet::core::types::FieldElement;
 use serde_json::json;
-use crate::ServerState;
+use crate::server_state::ServerState;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Account {
-    pub balance: FieldElement,
+    pub balance: String,
     pub public_key: String,
     pub private_key: String,
     pub address: String,

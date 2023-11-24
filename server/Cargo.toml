@@ -1,20 +1,28 @@
+[workspace]
+members = ["api", "."]
+
 [package]
-name = "server"
+name = "keiko"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-anyhow = "1.0.75"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace.dependencies]
 axum = "0.6.20"
-dotenvy = "0.15.7"
-jsonrpsee-core = "0.20.0"
+dojo-world = { git = "https://github.com/dojoengine/dojo.git", tag = "v0.3.10", features = [ "manifest" ] }
 jsonrpsee-http-client = "0.20.0"
-log = "0.4.20"
 serde = "1.0.183"
 serde_json = "1.0.104"
-starknet = "0.7.0"
 tokio = { version = "1.31.0", features = [ "full" ] }
+
+[dependencies]
+axum.workspace = true
+clap = { version = "4.4.8", features = [ "derive" ] }
+dojo-world.workspace = true
+jsonrpsee-http-client.workspace = true
+keiko-api = { path = './api' }
+log = "0.4.20"
+tokio.workspace = true
 tower-http = { version = "0.4.3", features = ["add-extension", "fs", "cors"] }
-thiserror = "1.0.49"
-dojo-world = { git = "https://github.com/dojoengine/dojo.git", tag = "v0.3.10", features = [ "manifest" ] }
-url = "2.4.0"
+url = "2.5.0"

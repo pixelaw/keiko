@@ -4,7 +4,7 @@ use jsonrpsee_core::client::ClientT;
 use jsonrpsee_core::params::ArrayParams;
 use jsonrpsee_http_client::{HttpClient};
 use serde::Deserialize;
-use crate::ServerState;
+use crate::server_state::ServerState;
 
 #[derive(Deserialize)]
 enum Type {

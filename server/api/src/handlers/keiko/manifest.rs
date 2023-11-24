@@ -3,7 +3,7 @@ use axum::http::StatusCode;
 use axum::{Extension, Json};
 use axum::response::IntoResponse;
 use dojo_world::manifest::Manifest;
-use crate::ServerState;
+use crate::server_state::ServerState;
 
 pub async fn store_manifest(Path(app_name): Path<String>, Extension(server_state): Extension<ServerState>, Json(manifest): Json<Manifest>, ) -> impl IntoResponse {
     let mut store = server_state.store.lock().await;
