@@ -19,7 +19,6 @@ export const manipulateBlock = (type: 'MineBlock' | 'IncreaseTime', value: numbe
   )
 
 export const getProductionUrl = () => {
-  if (import.meta.env.VITE_KATANA_URL) return import.meta.env.VITE_KATANA_URL
   const protocol = window.location.protocol
   const hostname = window.location.hostname.replace('www.', '')
 
