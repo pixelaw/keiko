@@ -71,6 +71,7 @@ async fn main() {
                get(keiko::manifest::get_manifest)
                    .on(MethodFilter::POST, keiko::manifest::store_manifest)
         )
+        .route("/config", get(keiko::config::handler))
         .nest_service("/keiko/assets", get_service(ServeDir::new("./static/keiko/assets")))
         .nest_service("/keiko", get_service(ServeFile::new("./static/keiko/index.html")))
         .nest_service("/assets", get_service(ServeDir::new(config.server.static_path.join("assets"))))
@@ -78,7 +79,9 @@ async fn main() {
         .layer(cors)
         .layer(AddExtensionLayer::new(ServerState {
             json_rpc_client: config.json_rpc_client(),
-            store
+            rpc_url: config.rpc_url(),
+            store,
+            torii_url: config.torii_url()
         }));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
@@ -101,13 +104,11 @@ async fn main() {
     }
 
 
-    if katana.is_some() {
-        let katana = katana.unwrap();
+    if let Some(katana) = katana {
         katana.abort();
     }
 
-    if torii.is_some() {
-        let torii = torii.unwrap();
+    if let Some(torii) = torii {
         torii.abort();
     }
 }
