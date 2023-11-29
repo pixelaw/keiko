@@ -54,13 +54,13 @@ pub struct ServerOptions {
     pub port: u16,
 
     #[arg(short, long)]
-    #[arg(default_value = "./contracts")]
+    #[arg(default_value = "contracts")]
     #[arg(value_parser = PathBuf::from_str)]
     #[arg(help = "Path to the contracts directory")]
     pub contract_path: PathBuf,
 
     #[arg(short, long)]
-    #[arg(default_value = "./static")]
+    #[arg(default_value = "static")]
     #[arg(value_parser = PathBuf::from_str)]
     #[arg(help = "Path to the static directory")]
     pub static_path: PathBuf
