@@ -28,10 +28,12 @@ pub struct KeikoArgs {
 pub struct SlotOptions {
     #[arg(long)]
     #[arg(help = "the url to the deployed slot katana")]
+    #[arg(env = "SLOT_KATANA")]
     pub katana: Option<Url>,
 
     #[arg(long)]
     #[arg(help = "the url to the deployed slot torii")]
+    #[arg(env = "SLOT_TORII")]
     pub torii: Option<Url>,
 }
 
@@ -39,10 +41,12 @@ pub struct SlotOptions {
 pub struct WorldOptions {
     #[arg(long)]
     #[arg(help = "the world address")]
+    #[arg(env = "WORLD_ADDRESS")]
     pub address: Option<String>,
 
     #[arg(long)]
     #[arg(help = "the world salt")]
+    #[arg(env = "WORLD_NAME")]
     pub name: Option<String>,
 }
 
@@ -51,18 +55,21 @@ pub struct ServerOptions {
     #[arg(short, long)]
     #[arg(default_value = "3000")]
     #[arg(help = "Port number to listen on.")]
+    #[arg(env = "SERVER_PORT")]
     pub port: u16,
 
     #[arg(short, long)]
     #[arg(default_value = "contracts")]
     #[arg(value_parser = PathBuf::from_str)]
     #[arg(help = "Path to the contracts directory")]
+    #[arg(env = "CONTRACT_PATH")]
     pub contract_path: PathBuf,
 
     #[arg(short, long)]
     #[arg(default_value = "static")]
     #[arg(value_parser = PathBuf::from_str)]
     #[arg(help = "Path to the static directory")]
+    #[arg(env = "STATIC_PATH")]
     pub static_path: PathBuf
 }
 

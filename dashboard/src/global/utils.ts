@@ -18,15 +18,6 @@ export const manipulateBlock = (type: 'MineBlock' | 'IncreaseTime', value: numbe
     }
   )
 
-export const getProductionUrl = () => {
-  const protocol = window.location.protocol
-  const hostname = window.location.hostname.replace('www.', '')
-
-  if (hostname === 'localhost') return 'http://localhost:5050'
-
-  return`${protocol}//katana.${hostname}`
-}
-
 // Function to convert a ReadableStream to a string
 export async function streamToString(readableStream: ReadableStream) {
   const textDecoder = new TextDecoder();

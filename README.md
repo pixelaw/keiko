@@ -42,7 +42,7 @@ services:
       - "50051"
     restart: unless-stopped
     volumes:
-      - ./contracts:/opt/contracts
+      - ./contracts:/keiko/contracts
     networks:
       - pixelaw
 
@@ -60,6 +60,10 @@ container. To compile the contracts:
 cd contracts
 sozo build
 ````
+
+##### Optional Environment Variables
+-- TODO: outline this
+
 
 #### Setup
 ````shell
@@ -86,7 +90,7 @@ docker run -d --name=keiko \
   -p 8080:8080 \
   -p 50051:50051 \
   --restart unless-stopped \
-  -v $(pwd)/contracts:/opt/contracts \
+  -v $(pwd)/contracts:/keiko/contracts \
   --network=pixelaw \
   oostvoort/keiko:latest
 ````
@@ -110,6 +114,13 @@ cargo run
 cd dashboard
 yarn
 ````
+
+##### Setup environment variables
+````shell
+cd dashboard
+npx import-meta-env-prepare -x .env.example
+````
+
 ##### Run the web app
 ````shell
 cd dashboard

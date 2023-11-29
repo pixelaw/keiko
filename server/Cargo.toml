@@ -19,7 +19,7 @@ url = "2.5.0"
 
 [dependencies]
 axum.workspace = true
-clap = { version = "4.4.8", features = [ "derive" ] }
+clap = { version = "4.4.8", features = [ "derive", "env" ] }
 dojo-world.workspace = true
 jsonrpsee-http-client.workspace = true
 keiko-api = { path = './api' }

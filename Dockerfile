@@ -28,6 +28,7 @@ FROM chef AS server_planner
 
 # Copy needed directories
 COPY ./server/src /app/server/src
+COPY ./server/api /app/server/api
 COPY ./server/Cargo.lock /app/server/Cargo.lock
 COPY ./server/Cargo.toml /app/server/Cargo.toml
 
@@ -46,6 +47,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 # Copy needed directories
 COPY ./server/src /app/server/src
+COPY ./server/api /app/server/api
 COPY ./server/Cargo.lock /app/server/Cargo.lock
 COPY ./server/Cargo.toml /app/server/Cargo.toml
 
@@ -68,6 +70,7 @@ RUN apt-get update && \
     nodejs \
     npm
 RUN apt-get autoremove && apt-get clean
+RUN npm i -g @import-meta-env/cli
 
 ## Get Rust
 #RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
@@ -95,10 +98,15 @@ WORKDIR /keiko
 COPY ./server/contracts ./contracts
 
 # Server
-COPY --from=server_builder /app/server/target/release/server .
+COPY --from=server_builder /app/server/target/release/keiko .
 COPY ./server/static ./static
 
 # Dashboard
 COPY --from=dashboard_builder /app/dist ./static/keiko
+COPY ./dashboard/.env.example ./.env.example
 
-CMD ["/keiko/server"]
+ENV KATANA_URL=http://localhost:5050
+
+CMD /bin/sh -c "npx import-meta-env -x .env.example -p ./static/keiko/index.html & ./keiko"
+
+

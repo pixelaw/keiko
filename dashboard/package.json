@@ -16,6 +16,8 @@
     "starknet": "^5.14.1"
   },
   "devDependencies": {
+    "@import-meta-env/cli": "^0.6.8",
+    "@import-meta-env/prepare": "^0.1.12",
     "@import-meta-env/unplugin": "^0.5.1",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",

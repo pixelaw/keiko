@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     ImportMetaEnvPlugin.vite({
-      example: "env.example"
+      example: ".env.example"
     })
   ],
   server: {
