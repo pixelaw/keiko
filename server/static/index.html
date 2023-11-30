@@ -37,13 +37,6 @@
     <li><a href="https://book.dojoengine.org/getting-started/quick-start.html">Dojo</a></li>
 </ol>
 
-<h3>Environment Variables</h3>
-<p>There are several environment variables that can be set for the container.</p>
-<ol>
-    <li>SERVER_PORT - the port the server is hosted (defaults to 3000)</li>
-    <li>KATANA_PORT - the port Katana will run from (defaults to 5050)</li>
-</ol>
-
 <h3>Yaml File</h3>
 <p>Copy the following Yaml file into your project's root directory.</p>
 <pre><code>
@@ -58,7 +51,7 @@
           - "50051"
         restart: unless-stopped
         volumes:
-          - ./contracts:/opt/contracts
+          - ./contracts:/keiko/contracts
         networks:
           - pixelaw
 
@@ -104,7 +97,7 @@
       -p 8080:8080 \
       -p 50051:50051 \
       --restart unless-stopped \
-      -v $(pwd)/contracts:/opt/contracts \
+      -v $(pwd)/contracts:/keiko/contracts \
       --network=pixelaw \
       oostvoort/keiko:latest
     </code></pre>

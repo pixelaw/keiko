@@ -52,7 +52,7 @@ pub struct WorldOptions {
 
 #[derive(Debug, Args, Clone)]
 pub struct ServerOptions {
-    #[arg(short, long)]
+    #[arg(long)]
     #[arg(default_value = "3000")]
     #[arg(help = "Port number to listen on.")]
     #[arg(env = "SERVER_PORT")]
@@ -70,7 +70,13 @@ pub struct ServerOptions {
     #[arg(value_parser = PathBuf::from_str)]
     #[arg(help = "Path to the static directory")]
     #[arg(env = "STATIC_PATH")]
-    pub static_path: PathBuf
+    pub static_path: PathBuf,
+
+    #[arg(long)]
+    #[arg(default_value = "false")]
+    #[arg(help = "Builds the dashboard if set to true")]
+    #[arg(env = "PROD")]
+    pub prod: bool,
 }
 
 impl KeikoArgs {

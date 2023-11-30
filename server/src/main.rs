@@ -20,10 +20,20 @@ use crate::utils::run_torii;
 mod args;
 mod utils;
 
+const KEIKO_ASSETS: &str = "static/keiko/assets";
+const KEIKO_INDEX: &str = "static/keiko/index.html";
+
 #[tokio::main]
 async fn main() {
     let config = KeikoArgs::parse();
     let store = Arc::new(tokio::sync::Mutex::new(HashMap::<String, Manifest>::new()));
+
+    if config.server.prod {
+        Command::new("npx")
+            .args(vec!["import-meta-env", "-x", ".env.example", "-p", KEIKO_INDEX])
+            .output()
+            .expect("Failed to build dashboard");
+    }
 
     let katana = match config.can_run_katana() {
         true => {
@@ -72,8 +82,8 @@ async fn main() {
                    .on(MethodFilter::POST, keiko::manifest::store_manifest)
         )
         .route("/config", get(keiko::config::handler))
-        .nest_service("/keiko/assets", get_service(ServeDir::new("./static/keiko/assets")))
-        .nest_service("/keiko", get_service(ServeFile::new("./static/keiko/index.html")))
+        .nest_service("/keiko/assets", get_service(ServeDir::new(KEIKO_ASSETS)))
+        .nest_service("/keiko", get_service(ServeFile::new(KEIKO_INDEX)))
         .nest_service("/assets", get_service(ServeDir::new(config.server.static_path.join("assets"))))
         .fallback_service(get_service(ServeFile::new(config.server.static_path.join("index.html"))))
         .layer(cors)

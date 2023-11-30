@@ -8,10 +8,7 @@ A Vite React WebApp powers Keiko, an open-source development tool tailored for D
 2. https://katana.keiko.aw.oostvoort.work
 3. https://torii.aw.oostvoort.work
 
-
-
 ## Local Development
-
 
 ## Getting Started
 There are three ways to set up Keiko:
@@ -22,11 +19,6 @@ There are three ways to set up Keiko:
 1. [Docker](https://docs.docker.com/get-docker/)
 2. [Docker Compose Plugin](https://docs.docker.com/compose/install/)
 3. [Dojo](https://book.dojoengine.org/getting-started/quick-start.html)
-
-#### Environment Variables
-There are several environment variables that can be set for the container.
-1. SERVER_PORT - the port the server is hosted (defaults to 3000)
-2. KATANA_PORT - the port Katana will run from (defaults to 5050)
 
 #### Yaml File
 Copy the following Yaml file into your project's root directory.
@@ -62,7 +54,21 @@ sozo build
 ````
 
 ##### Optional Environment Variables
--- TODO: outline this
+###### Server Options
+1. SERVER_PORT - Port number to listen on. [default: 3000]
+2. CONTRACT_PATH - Path to the contracts directory [default: contracts]
+3. STATIC_PATH - Path to the static directory [default: static]
+
+###### Slot Options
+1. SLOT_KATANA - the url to the deployed slot katana
+2. SLOT_TORII - the url to the deployed slot torii
+
+###### World Options
+1. WORLD_ADDRESS - the world address [required if SLOT_KATANA was provided to run local Torii]
+2. WORLD_NAMD - the world salt
+
+###### Dashboard Options
+1. PUBLIC_NODE_URL - the rpc url the Dashboard will use [default: http://localhost:5050]
 
 
 #### Setup

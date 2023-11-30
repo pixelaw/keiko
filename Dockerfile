@@ -105,8 +105,9 @@ COPY ./server/static ./static
 COPY --from=dashboard_builder /app/dist ./static/keiko
 COPY ./dashboard/.env.example ./.env.example
 
-ENV KATANA_URL=http://localhost:5050
+ENV PUBLIC_NODE_URL=http://localhost:5050
+ENV PROD=true
 
-CMD /bin/sh -c "npx import-meta-env -x .env.example -p ./static/keiko/index.html & ./keiko"
+CMD ["./keiko"]
 
 
