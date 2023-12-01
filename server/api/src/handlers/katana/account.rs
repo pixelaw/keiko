@@ -16,7 +16,6 @@ pub struct SerializedAccount {
 
 impl From<Account> for SerializedAccount {
     fn from(value: Account) -> Self {
-        let account = json!(value);
         SerializedAccount {
             public_key: value.public_key.to_string(),
             private_key: value.private_key.to_string(),

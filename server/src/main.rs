@@ -44,7 +44,12 @@ async fn main() {
     };
 
     let torii = match config.can_run_torii() {
-        true =>Some(task::spawn(run_torii(config.clone()))),
+        true =>{
+            let config = config.clone();
+            Some(task::spawn(async move {
+                run_torii(config).await
+            }))
+        },
         false => None
     };
 

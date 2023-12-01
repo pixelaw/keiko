@@ -140,21 +140,15 @@ pub async fn run_torii(config: KeikoArgs) {
 
             debug!("Running post deployment");
 
-            let result = Command::new("scarb")
+            Command::new("scarb")
                 .args([
                     "--manifest-path",
                     scarb_toml_path,
                     "run",
                     "post_deploy",
                 ])
-                .output()
+                .spawn()
                 .expect("Failed to post deploy");
-
-            if result.status.success() {
-                debug!("Post Deployment Success: {}", String::from_utf8_lossy(&result.stdout));
-            } else {
-                error!("Post Deployment Error: {}", String::from_utf8_lossy(&result.stderr));
-            }
 
             let manifest = Manifest::load_from_path(config.server.contract_path.join("target/dev/manifest.json")).unwrap();
             manifest.world.address.unwrap().to_string()
