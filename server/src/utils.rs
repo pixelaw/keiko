@@ -8,7 +8,7 @@ use dojo_world::manifest::Manifest;
 use log::{debug, error};
 use run_script::types::{ScriptOptions, ScriptResult};
 use tokio::time::sleep;
-use keiko_api::handlers::katana::account::{Account, get_accounts};
+use keiko_api::handlers::katana::account::{get_serialized_accounts, SerializedAccount};
 use crate::args::KeikoArgs;
 
 const UPDATE_CONTRACTS: &str =
@@ -61,7 +61,7 @@ fn is_port_open(port: u16) -> bool {
 }
 
 
-fn update_account(account: &Account, options: &ScriptOptions) -> ScriptResult<(i32, String, String)> {
+fn update_account(account: &SerializedAccount, options: &ScriptOptions) -> ScriptResult<(i32, String, String)> {
     let script = format!(
         r#"
             sed -i "s/account_address = ".*"/account_address = "{}" Scarb.toml
@@ -73,7 +73,7 @@ fn update_account(account: &Account, options: &ScriptOptions) -> ScriptResult<(i
     run_script::run_script!(script, options)
 }
 
-fn deploy_contracts(scarb_toml_path: &str, deployer: &Account, rpc_url: &str, world_name: &Option<String>) -> io::Result<Output> {
+fn deploy_contracts(scarb_toml_path: &str, deployer: &SerializedAccount, rpc_url: &str, world_name: &Option<String>) -> io::Result<Output> {
     let mut sozo_args = vec![
         "migrate",
         "--rpc-url",
@@ -107,18 +107,24 @@ pub async fn run_torii(config: KeikoArgs) {
                 sleep(Duration::from_secs(1)).await;
             }
 
-            let accounts = get_accounts(&config.json_rpc_client()).await;
+            let accounts = get_serialized_accounts(&config.starknet.seed, config.starknet.total_accounts);
             let account = accounts.first().unwrap();
 
             let scarb_toml_path = config.server.contract_path.join("Scarb.toml");
             let scarb_toml_path = scarb_toml_path.to_str().unwrap();
 
-            deploy_contracts(
+            match deploy_contracts(
                 scarb_toml_path,
                 account,
                 rpc_url.as_str(),
                 &config.world.name
-            ).expect("Failed to deploy contracts");
+            ) {
+                Ok(output) => match output.status.success() {
+                    true => debug!("Deployed Contracts: {}", String::from_utf8_lossy(&output.stdout)),
+                    false => error!("Could not deploy contracts: {}", String::from_utf8_lossy(&output.stderr))
+                }
+                Err(error) => error!("Could not deploy contracts: {}", error.to_string())
+            };
 
             // update environment variables
             debug!("Updating environment variables");

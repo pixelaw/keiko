@@ -10,4 +10,11 @@ pub struct ServerState {
     pub rpc_url: Url,
     pub store: Arc<tokio::sync::Mutex<HashMap<String, Manifest>>>,
     pub torii_url: Url,
+    pub starknet: StarknetOptions
+}
+
+#[derive(Clone)]
+pub struct StarknetOptions {
+    pub seed: String,
+    pub total_accounts: u8
 }

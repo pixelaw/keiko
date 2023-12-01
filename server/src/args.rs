@@ -1,8 +1,12 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use clap::{Args, Parser};
 use jsonrpsee_http_client::{HttpClient, HttpClientBuilder};
 use url::Url;
 use std::str::FromStr;
+use std::sync::Arc;
+use dojo_world::manifest::Manifest;
+use keiko_api::server_state;
 
 const LOCAL_KATANA: &str = "http://0.0.0.0:5050";
 const LOCAL_TORII: &str = "http://0.0.0.0:8080";
@@ -14,6 +18,10 @@ pub struct KeikoArgs {
     #[command(flatten)]
     #[command(next_help_heading = "Server options")]
     pub server: ServerOptions,
+
+    #[command(flatten)]
+    #[command(next_help_heading = "Starknet options")]
+    pub starknet: StarknetOptions,
 
     #[command(flatten)]
     #[command(next_help_heading = "Slot options")]
@@ -65,7 +73,7 @@ pub struct ServerOptions {
     #[arg(env = "CONTRACT_PATH")]
     pub contract_path: PathBuf,
 
-    #[arg(short, long)]
+    #[arg(long)]
     #[arg(default_value = "static")]
     #[arg(value_parser = PathBuf::from_str)]
     #[arg(help = "Path to the static directory")]
@@ -77,6 +85,22 @@ pub struct ServerOptions {
     #[arg(help = "Builds the dashboard if set to true")]
     #[arg(env = "PROD")]
     pub prod: bool,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct StarknetOptions {
+    #[arg(long)]
+    #[arg(default_value = "0")]
+    #[arg(help = "Specify the seed for randomness of accounts to be predeployed.")]
+    #[arg(env = "SEED")]
+    pub seed: String,
+
+    #[arg(long = "accounts")]
+    #[arg(value_name = "NUM")]
+    #[arg(default_value = "10")]
+    #[arg(help = "Number of pre-funded accounts to generate.")]
+    #[arg(env = "TOTAL_ACCOUNTS")]
+    pub total_accounts: u8,
 }
 
 impl KeikoArgs {
@@ -119,6 +143,22 @@ impl KeikoArgs {
     */
     pub fn torii_url(&self) -> Url {
         self.slot.torii.clone().unwrap_or(Url::parse(LOCAL_TORII).unwrap())
+    }
+
+    /*
+    *    gets the server state
+    */
+    pub fn server_state(&self) -> server_state::ServerState {
+        server_state::ServerState {
+            json_rpc_client: self.json_rpc_client(),
+            rpc_url: self.rpc_url(),
+            store: Arc::new(tokio::sync::Mutex::new(HashMap::<String, Manifest>::new())),
+            torii_url: self.torii_url(),
+            starknet: server_state::StarknetOptions {
+                seed: self.starknet.seed.clone(),
+                total_accounts: self.starknet.total_accounts.clone(),
+            },
+        }
     }
 
 }

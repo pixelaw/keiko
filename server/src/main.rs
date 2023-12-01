@@ -1,16 +1,12 @@
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use crate::args::KeikoArgs;
 use clap::{Parser};
-use dojo_world::manifest::Manifest;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
 use std::process::Command;
-use std::sync::Arc;
 use axum::http::Method;
 use axum::Router;
 use axum::routing::{get, get_service, MethodFilter, on};
-use keiko_api::server_state::ServerState;
 use tower_http::add_extension::AddExtensionLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::cors::{Any, CorsLayer};
@@ -26,7 +22,6 @@ const KEIKO_INDEX: &str = "static/keiko/index.html";
 #[tokio::main]
 async fn main() {
     let config = KeikoArgs::parse();
-    let store = Arc::new(tokio::sync::Mutex::new(HashMap::<String, Manifest>::new()));
 
     if config.server.prod {
         Command::new("npx")
@@ -37,9 +32,10 @@ async fn main() {
 
     let katana = match config.can_run_katana() {
         true => {
+            let config = config.clone();
             Some(task::spawn(async move {
                 Command::new("katana")
-                    .arg("--dev")
+                    .args(vec!["--dev", "--seed", &config.starknet.seed, "--accounts", &config.starknet.total_accounts.to_string()])
                     .spawn()
                     .expect("Failed to start process");
             }))
@@ -69,13 +65,13 @@ async fn main() {
                     .on(MethodFilter::PUT, katana::state::load_state)
                     .on(MethodFilter::DELETE, katana::state::reset_state),
             )
-            .route("/api/accounts", get(katana::account::handler))
             .route("/api/fund", get(katana::funds::handler))
             .route("/api/block", on(MethodFilter::POST, katana::block::handler))
     }
 
 
     router = router
+        .route("/api/accounts", get(katana::account::handler))
         .route(
             "/manifests/:app_name",
                get(keiko::manifest::get_manifest)
@@ -87,12 +83,7 @@ async fn main() {
         .nest_service("/assets", get_service(ServeDir::new(config.server.static_path.join("assets"))))
         .fallback_service(get_service(ServeFile::new(config.server.static_path.join("index.html"))))
         .layer(cors)
-        .layer(AddExtensionLayer::new(ServerState {
-            json_rpc_client: config.json_rpc_client(),
-            rpc_url: config.rpc_url(),
-            store,
-            torii_url: config.torii_url()
-        }));
+        .layer(AddExtensionLayer::new(config.server_state()));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
 
