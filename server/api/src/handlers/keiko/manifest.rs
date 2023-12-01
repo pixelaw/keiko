@@ -7,8 +7,17 @@ use crate::server_state::ServerState;
 
 pub async fn store_manifest(Path(app_name): Path<String>, Extension(server_state): Extension<ServerState>, Json(manifest): Json<Manifest>, ) -> impl IntoResponse {
     let mut store = server_state.store.lock().await;
-    store.insert(app_name, manifest);
-    (StatusCode::CREATED, "Stored manifest")
+    let value = store.get(&app_name);
+    match value {
+        None => {
+            store.insert(app_name, manifest);
+            (StatusCode::CREATED, "Stored manifest")
+        }
+        Some(_) => {
+            (StatusCode::IM_USED, "Already uploaded")
+        }
+    }
+
 }
 
 pub async fn get_manifest(Path(app_name): Path<String>, Extension(server_state): Extension<ServerState>) -> impl IntoResponse {
