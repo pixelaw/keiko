@@ -32,10 +32,10 @@ async fn main() {
 
     let katana = match config.can_run_katana() {
         true => {
-            let config = config.clone();
+            let katana_args = config.get_katana_args();
             Some(task::spawn(async move {
                 Command::new("katana")
-                    .args(vec!["--dev", "--seed", &config.starknet.seed, "--accounts", &config.starknet.total_accounts.to_string()])
+                    .args(katana_args)
                     .spawn()
                     .expect("Failed to start process");
             }))

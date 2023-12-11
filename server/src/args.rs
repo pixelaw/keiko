@@ -30,7 +30,58 @@ pub struct KeikoArgs {
     #[command(flatten)]
     #[command(next_help_heading = "World options")]
     pub world: WorldOptions,
+
+    #[command(flatten)]
+    #[command(next_help_heading = "Katana options")]
+    pub katana: KatanaOptions
 }
+
+#[derive(Debug, Args, Clone)]
+pub struct KatanaOptions {
+    #[arg(long)]
+    #[arg(help = "Don't print anything on startup.")]
+    #[arg(env = "KATANA_SILENT_LOGS")]
+    pub silent: bool,
+
+    #[arg(long)]
+    #[arg(conflicts_with = "block_time")]
+    #[arg(help = "Disable auto and interval mining, and mine on demand instead via an endpoint.")]
+    #[arg(env = "KATANA_NO_MINING")]
+    pub no_mining: bool,
+
+    #[arg(short, long)]
+    #[arg(value_name = "MILLISECONDS")]
+    #[arg(help = "Block time in milliseconds for interval mining.")]
+    #[arg(env = "KATANA_BLOCK_TIME")]
+    pub block_time: Option<u64>,
+
+    #[arg(long)]
+    #[arg(value_name = "PATH")]
+    #[arg(help = "Dump the state of chain on exit to the given file.")]
+    #[arg(long_help = "Dump the state of chain on exit to the given file. If the value is a \
+                       directory, the state will be written to `<PATH>/state.bin`.")]
+    #[arg(env = "KATANA_DUMP_STATE")]
+    pub dump_state: Option<PathBuf>,
+
+    #[arg(long)]
+    #[arg(value_name = "URL")]
+    #[arg(help = "The Starknet RPC provider to fork the network from.")]
+    #[arg(env = "KATANA_FORK_RPC_URL")]
+    pub rpc_url: Option<Url>,
+
+    #[arg(long)]
+    #[arg(help = "Output logs in JSON format.")]
+    #[arg(env = "KATANA_JSON_LOG")]
+    pub json_log: bool,
+
+    #[arg(long)]
+    #[arg(requires = "rpc_url")]
+    #[arg(value_name = "BLOCK_NUMBER")]
+    #[arg(help = "Fork the network at a specific block.")]
+    #[arg(env = "KATANA_FORK_BLOCK_NUMBER")]
+    pub fork_block_number: Option<u64>
+}
+
 
 #[derive(Debug, Args, Clone)]
 pub struct SlotOptions {
@@ -101,6 +152,39 @@ pub struct StarknetOptions {
     #[arg(help = "Number of pre-funded accounts to generate.")]
     #[arg(env = "TOTAL_ACCOUNTS")]
     pub total_accounts: u8,
+
+    #[arg(long)]
+    #[arg(help = "Disable charging fee for transactions.")]
+    #[arg(env = "DISABLE_FEE")]
+    pub disable_fee: bool,
+
+    #[command(flatten)]
+    #[command(next_help_heading = "Environment options")]
+    pub environment: EnvironmentOptions,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct EnvironmentOptions {
+    #[arg(long)]
+    #[arg(help = "The chain ID.")]
+    #[arg(default_value = "KATANA")]
+    #[arg(env = "CHAIN_ID")]
+    pub chain_id: String,
+
+    #[arg(long)]
+    #[arg(help = "The gas price.")]
+    #[arg(env = "GAS_PRICE")]
+    pub gas_price: Option<u128>,
+
+    #[arg(long)]
+    #[arg(help = "The maximum number of steps available for the account validation logic.")]
+    #[arg(env = "VALIDATE_MAX_STEPS")]
+    pub validate_max_steps: Option<u32>,
+
+    #[arg(long)]
+    #[arg(help = "The maximum number of steps available for the account execution logic.")]
+    #[arg(env = "INVOKE_MAX_STEPS")]
+    pub invoke_max_steps: Option<u32>,
 }
 
 impl KeikoArgs {
@@ -110,6 +194,77 @@ impl KeikoArgs {
      */
     pub fn can_run_katana(&self) -> bool {
         self.slot.katana.is_none()
+    }
+
+    /**
+     * gets all katana args to run katana with
+     */
+    pub fn get_katana_args(&self) -> Vec<String> {
+        // by default katana runs on dev mode
+        let mut args = vec!["--dev".to_string()];
+
+        if self.katana.silent {
+            args.push("--silent".to_string())
+        }
+
+        if self.katana.no_mining {
+            args.push("--no-mining".to_string())
+        }
+
+        if let Some(block_time) = &self.katana.block_time {
+            args.push("--block-time".to_string());
+            args.push(block_time.to_string());
+        }
+
+        if let Some(dump_state) = &self.katana.dump_state {
+            args.push("--dump-state".to_string());
+            args.push(dump_state.to_str().unwrap().to_string())
+        }
+
+        if let Some(rpc_url) = &self.katana.rpc_url {
+            args.push("--rpc-url".to_string());
+            args.push(rpc_url.to_string())
+        }
+
+        if self.katana.json_log {
+            args.push("--json-log".to_string());
+        }
+
+        if let Some(fork_block_number) = &self.katana.fork_block_number {
+            args.push("--fork-block-number".to_string());
+            args.push(fork_block_number.to_string())
+        }
+
+        args.push("--seed".to_string());
+        args.push(self.starknet.seed.clone());
+
+        args.push("--accounts".to_string());
+        args.push(self.starknet.total_accounts.to_string());
+
+        if self.starknet.disable_fee {
+            args.push("--disable-fee".to_string())
+        }
+
+        args.push("--chain-id".to_string());
+        args.push(self.starknet.environment.chain_id.clone());
+
+        if let Some(gas_price) = &self.starknet.environment.gas_price {
+            args.push("--gas-price".to_string());
+            args.push(gas_price.to_string());
+        }
+
+        if let Some(validate_max_steps) = &self.starknet.environment.validate_max_steps {
+            args.push("--validate-max-steps".to_string());
+            args.push(validate_max_steps.to_string());
+        }
+
+        if let Some(invoke_max_steps) = &self.starknet.environment.invoke_max_steps {
+            args.push("--invoke-max-steps".to_string());
+            args.push(invoke_max_steps.to_string());
+        }
+
+        args
+
     }
 
     /**
