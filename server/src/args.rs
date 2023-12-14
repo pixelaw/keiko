@@ -1,11 +1,8 @@
-use std::collections::HashMap;
 use std::path::PathBuf;
 use clap::{Args, Parser};
 use jsonrpsee_http_client::{HttpClient, HttpClientBuilder};
 use url::Url;
 use std::str::FromStr;
-use std::sync::Arc;
-use dojo_world::manifest::Manifest;
 use keiko_api::server_state;
 
 const LOCAL_KATANA: &str = "http://0.0.0.0:5050";
@@ -130,6 +127,13 @@ pub struct ServerOptions {
     #[arg(help = "Path to the static directory")]
     #[arg(env = "STATIC_PATH")]
     pub static_path: PathBuf,
+
+
+    #[arg(long)]
+    #[arg(default_value = "manifests")]
+    #[arg(help = "Path to the manifests directory")]
+    #[arg(env = "MANIFEST_DIRECTORY_PATH")]
+    pub manifest_directory_path: String,
 
     #[arg(long)]
     #[arg(default_value = "false")]
@@ -307,7 +311,7 @@ impl KeikoArgs {
         server_state::ServerState {
             json_rpc_client: self.json_rpc_client(),
             rpc_url: self.rpc_url(),
-            store: Arc::new(tokio::sync::Mutex::new(HashMap::<String, Manifest>::new())),
+            manifest_directory_path: self.server.manifest_directory_path.clone(),
             torii_url: self.torii_url(),
             starknet: server_state::StarknetOptions {
                 seed: self.starknet.seed.clone(),
