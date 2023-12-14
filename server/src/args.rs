@@ -308,10 +308,18 @@ impl KeikoArgs {
     *    gets the server state
     */
     pub fn server_state(&self) -> server_state::ServerState {
+
+        // add world_address if it is supplied
+        let manifest_directory_path = match &self.world.address {
+            None => self.server.manifest_directory_path.clone(),
+            Some(world_address) => format!("{}/{}", &self.server.manifest_directory_path, world_address)
+        };
+
+
         server_state::ServerState {
             json_rpc_client: self.json_rpc_client(),
             rpc_url: self.rpc_url(),
-            manifest_directory_path: self.server.manifest_directory_path.clone(),
+            manifest_directory_path,
             torii_url: self.torii_url(),
             starknet: server_state::StarknetOptions {
                 seed: self.starknet.seed.clone(),
