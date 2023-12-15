@@ -1,13 +1,13 @@
 [package]
-cairo-version = "2.1.1"
+cairo-version = "2.4.0"
 name = "dojo_examples"
-version = "0.1.0"
+version = "0.4.0"
 
 [cairo]
 sierra-replace-ids = true
 
 [dependencies]
-dojo = { git = "https://github.com/dojoengine/dojo", tag = "v0.3.10" }
+dojo = { git = "https://github.com/dojoengine/dojo", version = "0.4.0" }
 
 [[target.dojo]]
 
@@ -19,7 +19,7 @@ initializer_class_hash = "0xbeef"
 # Default account for katana with seed = 0
 account_address = "0x517ececd29116499f4a1b64b094da79ba08dfd54a3edaa316134c41f8160973"
 private_key = "0x1800000000300000180000000000030000000000003006001800006600"
-world_address = "0x534692277764b04cfc469858891b825c799d1da550d2509fdd5be2f32abdaa0"
+world_address = "0x33ac2f528bb97cc7b79148fd1756dc368be0e95d391d8c6d6473ecb60b4560e"
 
 # Madara testnet
 # rpc_url = "https://api.cartridge.gg/x/shinai/madara"

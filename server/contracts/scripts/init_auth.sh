@@ -9,12 +9,12 @@ COMPONENTS=("Position" "Moves" )
 
 for component in ${COMPONENTS[@]}; do
     sleep 0.1
-    sozo auth writer $component $ACTIONS
+    sozo auth writer $component $DOJO_EXAMPLES_ACTIONS_ACTIONS
 done
 
 for component in ${COMPONENTS[@]}; do
     sleep 0.1
-    sozo auth writer $component $ACTIONS
+    sozo auth writer $component $DOJO_EXAMPLES_ACTIONS_ACTIONS
 done
 
 echo "Default authorizations have been successfully set."

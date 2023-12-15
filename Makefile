@@ -1,7 +1,7 @@
 REPO = oostvoort/keiko
 
-VERSION ?= v0.0.15
-DOJO_VERSION = v0.3.15
+VERSION ?= v0.0.16
+DOJO_VERSION = v0.4.1
 
 # Example: make docker-build version=v1.1.0
 build:
