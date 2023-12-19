@@ -22,6 +22,6 @@ find . -type f -name "Chart.yaml" -exec sed -i'' -e "s/appVersion: \"$prev_versi
 echo $1 > VERSION
 
 # Uncommented git commands
-#git commit -am "Prepare v$1"
-#git tag -a "v$1" -m "Version $1"
+git commit -am "Prepare v$1"
+git tag -a "v$1" -m "Version $1"
 
