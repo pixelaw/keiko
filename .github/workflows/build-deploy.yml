@@ -49,7 +49,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          build-args: "DOJO_VERSION=$DOJO_VERSION"
+          build-args: DOJO_VERSION=${{ env.DOJO_VERSION }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
