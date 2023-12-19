@@ -1,7 +1,7 @@
 REPO = oostvoort/keiko
 
-VERSION = v0.0.16
-DOJO_VERSION = v0.4.1
+VERSION = $(shell cat VERSION)
+DOJO_VERSION = $(shell cat DOJO_VERSION)
 
 # Example: make docker-build version=v1.1.0
 build:
@@ -13,15 +13,3 @@ run:
 
 shell:
 	docker run -it --rm --name temp-container oostvoort/keiko:latest bash
-
-# Example: make docker-push version=v1.1.0
-push:
-	docker push $(REPO):latest
-	docker push $(REPO):$(VERSION)
-
-tag:
-	# Create a new tag
-	git tag $(VERSION)
-
-	# Push the tag to the remote repository
-	git push origin $(VERSION)
