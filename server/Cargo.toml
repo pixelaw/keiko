@@ -3,7 +3,6 @@ members = ["api", "."]
 
 [package]
 name = "keiko"
-version = "0.0.21"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
