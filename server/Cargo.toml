@@ -9,11 +9,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
-axum = "0.6.20"
-blockifier = { git = "https://github.com/starkware-libs/blockifier" }
 dojo-world = { git = "https://github.com/dojoengine/dojo.git", tag = "v0.3.10", features = ["manifest"] }
-jsonrpsee-http-client = "0.20.0"
 katana-core = { git = "https://github.com/dojoengine/dojo.git", tag = "v0.3.10" }
+blockifier = { git = "https://github.com/starkware-libs/blockifier" }
+axum = "0.6.20"
+jsonrpsee-http-client = "0.20.0"
 serde = "1.0.183"
 serde_json = "1.0.104"
 tokio = { version = "1.31.0", features = ["full"] }
@@ -27,15 +27,15 @@ cairo-felt = { git = "https://github.com/dojoengine/cairo-rs.git", rev = "262b7e
 cairo-vm = { git = "https://github.com/dojoengine/cairo-rs.git", rev = "262b7eb4b11ab165a2a936a5f914e78aa732d4a2" }
 
 [dependencies]
-axum.workspace = true
-blockifier.workspace = true
-clap = { version = "4.4.8", features = ["derive", "env"] }
 dojo-world.workspace = true
-jsonrpsee-http-client.workspace = true
+blockifier.workspace = true
+axum.workspace = true
 katana-core.workspace = true
+jsonrpsee-http-client.workspace = true
+tokio.workspace = true
+url.workspace = true
+clap = { version = "4.4.8", features = ["derive", "env"] }
 keiko-api = { path = './api' }
 log = "0.4.20"
 run_script = "0.10.1"
-tokio.workspace = true
 tower-http = { version = "0.4.3", features = ["add-extension", "fs", "cors"] }
-url.workspace = true
