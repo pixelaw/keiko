@@ -11,20 +11,20 @@ edition = "2021"
 [workspace.dependencies]
 axum = "0.6.20"
 blockifier = { git = "https://github.com/starkware-libs/blockifier" }
-dojo-world = { git = "https://github.com/dojoengine/dojo.git", tag = "v0.3.10", features = ["manifest"] }
+dojo-world = { git = "https://github.com/dojoengine/dojo.git", rev = "1e6ed14e0508b7cdf6b1551cd918e84044bbc2a9", features = ["manifest"] }
 jsonrpsee-http-client = "0.20.0"
-katana-core = { git = "https://github.com/dojoengine/dojo.git", tag = "v0.3.10" }
+katana-primitives = { git = "https://github.com/dojoengine/dojo.git", rev = "1e6ed14e0508b7cdf6b1551cd918e84044bbc2a9" }
 serde = "1.0.183"
 serde_json = "1.0.104"
 tokio = { version = "1.31.0", features = ["full"] }
 url = "2.5.0"
 
 [patch."https://github.com/starkware-libs/blockifier"]
-blockifier = { git = "https://github.com/dojoengine/blockifier", rev = "3357e69" }
+blockifier = { git = "https://github.com/dojoengine/blockifier", rev = "8860946" }
 
 [patch.crates-io]
-cairo-felt = { git = "https://github.com/dojoengine/cairo-rs.git", rev = "262b7eb4b11ab165a2a936a5f914e78aa732d4a2" }
-cairo-vm = { git = "https://github.com/dojoengine/cairo-rs.git", rev = "262b7eb4b11ab165a2a936a5f914e78aa732d4a2" }
+cairo-felt = { git = "https://github.com/dojoengine/cairo-rs.git", rev = "1031381" }
+cairo-vm = { git = "https://github.com/dojoengine/cairo-rs.git", rev = "1031381" }
 
 [dependencies]
 axum.workspace = true
@@ -32,7 +32,7 @@ blockifier.workspace = true
 clap = { version = "4.4.8", features = ["derive", "env"] }
 dojo-world.workspace = true
 jsonrpsee-http-client.workspace = true
-katana-core.workspace = true
+katana-primitives.workspace = true
 keiko-api = { path = './api' }
 log = "0.4.20"
 run_script = "0.10.1"

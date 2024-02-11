@@ -1,7 +1,7 @@
 use std::string::ToString;
 use axum::Extension;
 use axum::response::{IntoResponse, Json};
-use katana_core::accounts::{Account, DevAccountGenerator};
+use katana_primitives::genesis::allocation::{GenesisAccount, DevAllocationsGenerator, DevGenesisAccount};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use crate::server_state::ServerState;
@@ -11,16 +11,16 @@ pub struct SerializedAccount {
     pub public_key: String,
     pub private_key: String,
     pub address: String,
-    pub class_hash: String
+    pub class_hash: String,
 }
 
-impl From<Account> for SerializedAccount {
-    fn from(value: Account) -> Self {
+impl From<DevGenesisAccount> for SerializedAccount {
+    fn from(value: DevGenesisAccount) -> Self {
         SerializedAccount {
             public_key: value.public_key.to_string(),
             private_key: value.private_key.to_string(),
-            address: value.address.to_string(),
-            class_hash: value.class_hash.to_string()
+            address: value.inner.address.to_string(),
+            class_hash: value.class_hash.to_string(),
         }
     }
 }
@@ -37,14 +37,13 @@ fn parse_seed(seed: &str) -> [u8; 32] {
     }
 }
 
-fn generate_accounts(seed: &str, total_accounts: u8) -> Vec<Account> {
-    DevAccountGenerator::new(total_accounts)
-        .with_seed( parse_seed(seed))
+fn generate_accounts(seed: &str, total_accounts: u8) -> Vec<DevGenesisAccount> {
+    DevAllocationsGenerator::new(total_accounts as u16)
+        .with_seed(parse_seed(seed))
         .generate()
 }
 
 pub fn get_serialized_accounts(seed: &str, total_accounts: u8) -> Vec<SerializedAccount> {
-
     let accounts = generate_accounts(seed, total_accounts);
 
     accounts.iter().map(|account| account.clone().into()).collect()
