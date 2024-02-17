@@ -1,5 +1,3 @@
-![](https://raw.githubusercontent.com/oostvoort/keiko/main/assets/logo.png)
-
 # Keiko
 
 Revised text:
@@ -11,9 +9,11 @@ Torii, and contract deployments, consolidating all processes into a single Docke
 
 ## Live Website
 
-1. https://keiko.aw.oostvoort.work/fork
-2. https://katana.keiko.aw.oostvoort.work
-3. https://torii.aw.oostvoort.work
+[//]: # (1. https://keiko.aw.oostvoort.work/fork)
+
+[//]: # (2. https://katana.keiko.aw.oostvoort.work)
+
+[//]: # (3. https://torii.aw.oostvoort.work)
 
 ## Local Development
 
