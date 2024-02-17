@@ -55,7 +55,7 @@ FROM node:20-bookworm as keiko
 
 ARG DOJO_VERSION
 
-RUN if [ -z "$DOJO_VERSION" ]; then echo "VERSION argument is required" && exit 1; fi
+RUN if [ -z "$DOJO_VERSION" ]; then echo "DOJO_VERSION argument is required" && exit 1; fi
 
 # Install dependencies
 RUN apt-get update && \
