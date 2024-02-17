@@ -2,8 +2,8 @@ name: Docker Image CI
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches:
+      - main
 
 
 env:
@@ -29,7 +29,7 @@ jobs:
         uses: depot/setup-action@v1
 
       - uses: depot/build-push-action@v1
-        with:
+        #        with:
         # if no depot.json file is at the root of your repo, you must specify the project id
         #          project: r77bmfc7vx
         # Pass project token or user access token if you're not using OIDC token authentication
