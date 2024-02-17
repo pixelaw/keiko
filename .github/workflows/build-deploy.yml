@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,9 +30,9 @@ jobs:
 
       - uses: depot/build-push-action@v1
         with:
-          # if no depot.json file is at the root of your repo, you must specify the project id
-          project: r77bmfc7vx
-          # Pass project token or user access token if you're not using OIDC token authentication
+        # if no depot.json file is at the root of your repo, you must specify the project id
+        #          project: r77bmfc7vx
+        # Pass project token or user access token if you're not using OIDC token authentication
       #          token: ${{ secrets.DEPOT_TOKEN }}
 
       #      - name: Set up Docker Buildx
