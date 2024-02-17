@@ -44,12 +44,12 @@ async fn main() {
     };
 
     let torii = match config.can_run_torii() {
-        true =>{
+        true => {
             let config = config.clone();
             Some(task::spawn(async move {
                 run_torii(config).await
             }))
-        },
+        }
         false => None
     };
 
@@ -65,7 +65,7 @@ async fn main() {
     if config.can_run_katana() {
         router = router
             .route(
-                "/api/state",
+                "/api/statea",
                 get(katana::state::save_state)
                     .on(MethodFilter::PUT, katana::state::load_state)
                     .on(MethodFilter::DELETE, katana::state::reset_state),
@@ -76,11 +76,11 @@ async fn main() {
 
 
     router = router
-        .route("/api/accounts", get(katana::account::handler))
+        // .route("/api/accounts", get(katana::account::handler))
         .route(
             "/manifests/:app_name",
-               get(keiko::manifest::get_manifest)
-                   .on(MethodFilter::POST, keiko::manifest::store_manifest)
+            get(keiko::manifest::get_manifest)
+                .on(MethodFilter::POST, keiko::manifest::store_manifest),
         )
         .route("/config", get(keiko::config::handler))
         .nest_service("/keiko/assets", get_service(ServeDir::new(KEIKO_ASSETS)))

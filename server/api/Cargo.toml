@@ -7,13 +7,11 @@ edition = "2021"
 
 [dependencies]
 axum.workspace = true
-blockifier.workspace = true
-jsonrpsee-core = "0.20.0"
+jsonrpsee-core = "0.20.3"
 jsonrpsee-http-client.workspace = true
-katana-primitives.workspace = true
-dojo-world.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 starknet = "0.8.0"
 tokio.workspace = true
 url.workspace = true
+dojo-world.workspace = true

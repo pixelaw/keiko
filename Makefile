@@ -1,4 +1,4 @@
-REPO = oostvoort/keiko
+REPO = ghcr.io/pixelaw/keiko
 
 VERSION = $(shell cat VERSION)
 DOJO_VERSION = $(shell cat DOJO_VERSION)

@@ -8,7 +8,7 @@ use dojo_world::manifest::Manifest;
 use log::{debug, error};
 use run_script::types::{ScriptOptions, ScriptResult};
 use tokio::time::sleep;
-use keiko_api::handlers::katana::account::{get_serialized_accounts, SerializedAccount};
+// use keiko_api::handlers::katana::account::{get_serialized_accounts, SerializedAccount};
 use crate::args::KeikoArgs;
 
 const UPDATE_CONTRACTS: &str =
@@ -60,95 +60,95 @@ fn is_port_open(port: u16) -> bool {
     }
 }
 
-
-fn update_account(account: &SerializedAccount, options: &ScriptOptions) -> ScriptResult<(i32, String, String)> {
-    let script = format!(
-        r#"
-            sed -i "s/account_address = ".*"/account_address = "{}" Scarb.toml
-            sed -i "s/private_key = ".*"/private_key = "{}" Scarb.toml
-        "#,
-        account.address,
-        account.private_key
-    );
-    run_script::run_script!(script, options)
-}
-
-fn deploy_contracts(scarb_toml_path: &str, deployer: &SerializedAccount, rpc_url: &str, world_name: &Option<String>) -> io::Result<Output> {
-    let mut sozo_args = vec![
-        "migrate",
-        "--rpc-url",
-        rpc_url,
-        "--manifest-path",
-        scarb_toml_path,
-        "--private-key",
-        &deployer.private_key,
-        "--account-address",
-        &deployer.address
-    ];
-
-    if let Some(name) = world_name {
-        sozo_args.extend(vec!["--name", name]);
-    }
-
-    // deploy contracts
-    Command::new("sozo")
-        .args(sozo_args)
-        .output()
-}
+//
+// fn update_account(account: &SerializedAccount, options: &ScriptOptions) -> ScriptResult<(i32, String, String)> {
+//     let script = format!(
+//         r#"
+//             sed -i "s/account_address = ".*"/account_address = "{}" Scarb.toml
+//             sed -i "s/private_key = ".*"/private_key = "{}" Scarb.toml
+//         "#,
+//         account.address,
+//         account.private_key
+//     );
+//     run_script::run_script!(script, options)
+// }
+//
+// fn deploy_contracts(scarb_toml_path: &str, deployer: &SerializedAccount, rpc_url: &str, world_name: &Option<String>) -> io::Result<Output> {
+//     let mut sozo_args = vec![
+//         "migrate",
+//         "--rpc-url",
+//         rpc_url,
+//         "--manifest-path",
+//         scarb_toml_path,
+//         "--private-key",
+//         &deployer.private_key,
+//         "--account-address",
+//         &deployer.address,
+//     ];
+//
+//     if let Some(name) = world_name {
+//         sozo_args.extend(vec!["--name", name]);
+//     }
+//
+//     // deploy contracts
+//     Command::new("sozo")
+//         .args(sozo_args)
+//         .output()
+// }
 
 pub async fn run_torii(config: KeikoArgs) {
     let rpc_url = config.rpc_url();
     let world_address = match config.can_run_katana() {
         false => config.world.address.clone().unwrap(),
         true => {
-            debug!("Deploying contracts");
-            // wait till port is accessible
-            while is_port_open(rpc_url.port().unwrap()) {
-                sleep(Duration::from_secs(1)).await;
-            }
-
-            let accounts = get_serialized_accounts(&config.starknet.seed, config.starknet.total_accounts);
-            let account = accounts.first().unwrap();
-
-            let scarb_toml_path = config.server.contract_path.join("Scarb.toml");
-            let scarb_toml_path = scarb_toml_path.to_str().unwrap();
-
-            match deploy_contracts(
-                scarb_toml_path,
-                account,
-                rpc_url.as_str(),
-                &config.world.name
-            ) {
-                Ok(output) => match output.status.success() {
-                    true => debug!("Deployed Contracts: {}", String::from_utf8_lossy(&output.stdout)),
-                    false => error!("Could not deploy contracts: {}", String::from_utf8_lossy(&output.stderr))
-                }
-                Err(error) => error!("Could not deploy contracts: {}", error.to_string())
-            };
-
-            // update environment variables
-            debug!("Updating environment variables");
-            let env_path = config.server.contract_path.join("scripts/env.sh");
-            write(env_path, UPDATE_CONTRACTS).unwrap();
+            // debug!("Deploying contracts");
+            // // wait till port is accessible
+            // while is_port_open(rpc_url.port().unwrap()) {
+            //     sleep(Duration::from_secs(1)).await;
+            // }
+            //
+            // let accounts = get_serialized_accounts(&config.starknet.seed, config.starknet.total_accounts);
+            // let account = accounts.first().unwrap();
+            //
+            // let scarb_toml_path = config.server.contract_path.join("Scarb.toml");
+            // let scarb_toml_path = scarb_toml_path.to_str().unwrap();
+            //
+            // match deploy_contracts(
+            //     scarb_toml_path,
+            //     account,
+            //     rpc_url.as_str(),
+            //     &config.world.name
+            // ) {
+            //     Ok(output) => match output.status.success() {
+            //         true => debug!("Deployed Contracts: {}", String::from_utf8_lossy(&output.stdout)),
+            //         false => error!("Could not deploy contracts: {}", String::from_utf8_lossy(&output.stderr))
+            //     }
+            //     Err(error) => error!("Could not deploy contracts: {}", error.to_string())
+            // };
+            //
+            // // update environment variables
+            // debug!("Updating environment variables");
+            // let env_path = config.server.contract_path.join("scripts/env.sh");
+            // write(env_path, UPDATE_CONTRACTS).unwrap();
 
             let mut options = ScriptOptions::new();
             options.working_directory = Some(config.server.contract_path.clone());
             options.exit_on_error = true;
-            run_script::run_script!(UPDATE_SCARB, &options).unwrap();
+            // run_script::run_script!(UPDATE_SCARB, &options).unwrap();
 
-            update_account(account, &options).unwrap();
-
-            debug!("Running post deployment");
-
-            Command::new("scarb")
-                .args([
-                    "--manifest-path",
-                    scarb_toml_path,
-                    "run",
-                    "post_deploy",
-                ])
-                .spawn()
-                .expect("Failed to post deploy");
+            // update_account(account, &options).unwrap();
+            //
+            // debug!("Running post deployment");
+            //
+            // Command::new("scarb")
+            //     .args([
+            //         "--manifest-path",
+            //         scarb_toml_path,
+            //         "run",
+            //         "post_deploy",
+            //     ])
+            //     .spawn()
+            //     .expect("Failed to post deploy");
 
             let manifest = Manifest::load_from_path(config.server.contract_path.join("target/dev/manifest.json")).unwrap();
             manifest.world.address.unwrap().to_string()

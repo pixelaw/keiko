@@ -18,10 +18,7 @@ COPY --from=dashboard_deps /app/node_modules ./node_modules
 # Build the webapp
 RUN yarn build --mode production
 
-FROM rust:1 AS chef
-# We only pay the installation cost once,
-# it will be cached from the second build onwards
-RUN cargo install cargo-chef
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 WORKDIR /app/server
 
 FROM chef AS server_planner
@@ -36,9 +33,9 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS server_builder
 
-# Install DEV dependencies and others.
-RUN apt-get update -y && \
-    apt-get install -y net-tools build-essential python3 python3-pip valgrind
+## Install DEV dependencies and others.
+#RUN apt-get update -y && \
+#    apt-get install -y net-tools build-essential python3 python3-pip valgrind
 
 COPY --from=server_planner /app/server/recipe.json recipe.json
 
@@ -54,7 +51,7 @@ COPY ./server/Cargo.toml /app/server/Cargo.toml
 # Build the binary
 RUN cargo build --release
 
-FROM debian:bookworm-slim as keiko
+FROM node:20-bookworm as keiko
 
 ARG DOJO_VERSION
 
@@ -65,16 +62,11 @@ RUN apt-get update && \
     apt-get install -y \
     jq \
     git-all \
-    build-essential \
-    curl \
-    nodejs \
-    npm
+    build-essential
+
+
 RUN apt-get autoremove && apt-get clean
 RUN npm i -g @import-meta-env/cli
-
-## Get Rust
-#RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-#RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 
 #Install Scarb
 RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh --output install.sh
