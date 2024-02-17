@@ -65,7 +65,7 @@ async fn main() {
     if config.can_run_katana() {
         router = router
             .route(
-                "/api/statea",
+                "/api/state",
                 get(katana::state::save_state)
                     .on(MethodFilter::PUT, katana::state::load_state)
                     .on(MethodFilter::DELETE, katana::state::reset_state),
