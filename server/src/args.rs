@@ -30,7 +30,7 @@ pub struct KeikoArgs {
 
     #[command(flatten)]
     #[command(next_help_heading = "Katana options")]
-    pub katana: KatanaOptions
+    pub katana: KatanaOptions,
 }
 
 #[derive(Debug, Args, Clone)]
@@ -54,11 +54,16 @@ pub struct KatanaOptions {
 
     #[arg(long)]
     #[arg(value_name = "PATH")]
-    #[arg(help = "Dump the state of chain on exit to the given file.")]
-    #[arg(long_help = "Dump the state of chain on exit to the given file. If the value is a \
-                       directory, the state will be written to `<PATH>/state.bin`.")]
-    #[arg(env = "KATANA_DUMP_STATE")]
-    pub dump_state: Option<PathBuf>,
+    #[arg(help = "Directory path of the database to initialize from.")]
+    #[arg(long_help = "Directory path of the database to initialize from. The path must either \
+                       be an empty directory or a directory which already contains a previously \
+                       initialized Katana database.")]
+    pub db_dir: Option<PathBuf>,
+
+    #[arg(long)]
+    #[arg(value_name = "PATH")]
+    #[arg(help = "Genesis file")]
+    pub genesis_file: Option<PathBuf>,
 
     #[arg(long)]
     #[arg(value_name = "URL")]
@@ -76,7 +81,7 @@ pub struct KatanaOptions {
     #[arg(value_name = "BLOCK_NUMBER")]
     #[arg(help = "Fork the network at a specific block.")]
     #[arg(env = "KATANA_FORK_BLOCK_NUMBER")]
-    pub fork_block_number: Option<u64>
+    pub fork_block_number: Option<u64>,
 }
 
 
@@ -127,7 +132,6 @@ pub struct ServerOptions {
     #[arg(help = "Path to the static directory")]
     #[arg(env = "STATIC_PATH")]
     pub static_path: PathBuf,
-
 
     #[arg(long)]
     #[arg(default_value = "manifests")]
@@ -192,7 +196,6 @@ pub struct EnvironmentOptions {
 }
 
 impl KeikoArgs {
-
     /**
      * checks if keiko should run katana
      */
@@ -218,11 +221,6 @@ impl KeikoArgs {
         if let Some(block_time) = &self.katana.block_time {
             args.push("--block-time".to_string());
             args.push(block_time.to_string());
-        }
-
-        if let Some(dump_state) = &self.katana.dump_state {
-            args.push("--dump-state".to_string());
-            args.push(dump_state.to_str().unwrap().to_string())
         }
 
         if let Some(rpc_url) = &self.katana.rpc_url {
@@ -268,7 +266,6 @@ impl KeikoArgs {
         }
 
         args
-
     }
 
     /**
@@ -327,5 +324,4 @@ impl KeikoArgs {
             },
         }
     }
-
 }

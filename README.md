@@ -72,6 +72,7 @@ sozo build
 1. SERVER_PORT - Port number to listen on. [default: 3000]
 2. CONTRACT_PATH - Path to the contracts directory [default: contracts]
 3. STATIC_PATH - Path to the static directory [default: static]
+4. GENESIS - Path to directory containing genesis.json and torii.sqlite
 
 ###### Slot Options
 
