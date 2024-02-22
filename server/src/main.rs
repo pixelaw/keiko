@@ -1,3 +1,4 @@
+use std::env::current_dir;
 use std::net::SocketAddr;
 use crate::args::KeikoArgs;
 use clap::{Parser};
@@ -10,9 +11,10 @@ use tower_http::add_extension::AddExtensionLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::cors::{Any, CorsLayer};
 use keiko_api::handlers::{katana, keiko};
-use crate::utils::run_torii;
+// use crate::utils::run_torii;
 use std::process::{Command, Stdio};
 use std::fs::File;
+use serde_json::Value;
 
 mod args;
 mod utils;
@@ -20,6 +22,7 @@ mod utils;
 const KEIKO_ASSETS: &str = "static/keiko/assets";
 const KEIKO_INDEX: &str = "static/keiko/index.html";
 const KATANA_LOG: &str = "katana.log.json";
+const TORII_LOG: &str = "torii.log";
 
 #[tokio::main]
 async fn main() {
@@ -33,10 +36,10 @@ async fn main() {
     }
 
     // Start Katana if needed
-    let katana = match config.can_run_katana() {
+    let katana = match config.should_run_katana() {
         true => {
             let katana_args = config.get_katana_args();
-            Some(task::spawn(async move {
+            let result = Some(task::spawn(async move {
                 let output = File::create(KATANA_LOG).expect("Failed to create file");
 
                 Command::new("katana")
@@ -44,27 +47,60 @@ async fn main() {
                     .stdout(Stdio::from(output))
                     .spawn()
                     .expect("Failed to start process");
+            }));
 
-                wait_for_non_empty_file(KATANA_LOG).await;
-            }))
+            wait_for_non_empty_file(KATANA_LOG).await;
+            result
         }
         false => None
     };
 
-    // Check if we got a World address already
-    
-    // Deploy Dojo if needed
+    let mut world_address = String::from("");
+    let rpc_url = "http://localhost:5050";
 
-    // Deploy contracts if needed
+    // Check if we're starting with a Dojo Genesis
+    if let (Some(genesis), Some(manifest)) = (&config.keiko.genesis, &config.keiko.manifest) {
+        // It looks like the Genesis has deployed contracts already
+        let file = File::open(manifest.clone()).expect("File should open read only");
+        let json: Value = serde_json::from_reader(file).expect("Manifest was not well-formatted");
+        world_address = json["world"]["address"].as_str().unwrap().to_string();
+        println!("World address: {}", world_address);
+
+        // TODO do we need the world owner address here?
+        // TODO also, what happens if the genesis has World deployments but the current scarb.toml has a different account?
+    }
+
+    // TODO Modify the Scarb.toml if needed with world address
+
+    // TODO Deploy Dojo/contracts if needed
 
     // Start Torii if needed
-    let torii = match config.can_run_torii() {
+    let torii = match config.should_run_torii() {
         true => {
-            let config = config.clone();
-            Some(task::spawn(async move {
-                run_torii(config).await
-            }))
+            let mut args: Vec<String> = vec![];
+            args.push("--world".to_string());
+            args.push(world_address.to_string());
+
+            // if let Some(genesis) = &self.keiko.genesis {
+            if let Some(torii_db) = config.keiko.torii_db.clone() {
+                args.push("--database".to_string());
+                args.push(format!("sqlite:///{}/{}", current_dir().unwrap().display(), torii_db.clone().to_string()));
+            }
+
+            let result = Some(task::spawn(async move {
+                let output = File::create(TORII_LOG).expect("Failed to create file");
+
+                Command::new("torii")
+                    .stdout(Stdio::from(output))
+                    .args(args)
+                    .spawn()
+                    .expect("Failed to start torii");
+            }));
+
+            wait_for_non_empty_file(TORII_LOG).await;
+            result
         }
+
         false => None
     };
 
@@ -77,7 +113,7 @@ async fn main() {
 
     let mut router = Router::new();
 
-    if config.can_run_katana() {
+    if config.should_run_katana() {
         router = router
             .route(
                 "/api/state",
@@ -129,9 +165,9 @@ async fn main() {
         katana.abort();
     }
 
-    if let Some(torii) = torii {
-        torii.abort();
-    }
+    // if let Some(torii) = torii {
+    //     torii.abort();
+    // }
 }
 
 async fn wait_for_non_empty_file(path: &str) {

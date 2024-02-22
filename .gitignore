@@ -5,3 +5,8 @@
 **/node_modules
 /server/indexer.db
 /server/manifests/
+server/manifest.json
+server/genesis.json
+server/*.log.json
+server/*.log
+server/*.sqlite

@@ -1933,6 +1933,7 @@ dependencies = [
  "keiko-api",
  "log",
  "run_script",
+ "serde_json",
  "tokio",
  "tower-http",
  "url",

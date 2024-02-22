@@ -18,6 +18,10 @@ pub struct KeikoArgs {
     pub server: ServerOptions,
 
     #[command(flatten)]
+    #[command(next_help_heading = "Keiko options")]
+    pub keiko: KeikoOptions,
+
+    #[command(flatten)]
     #[command(next_help_heading = "Starknet options")]
     pub starknet: StarknetOptions,
 
@@ -37,18 +41,21 @@ pub struct KeikoArgs {
 #[derive(Debug, Args, Clone)]
 pub struct KeikoOptions {
     #[arg(long)]
+    #[arg(env = "GENESIS")]
     #[arg(help = "Path to custom genesis.json for katana")]
-    pub genesis: Option<PathBuf>,
+    pub genesis: Option<String>,
 
     #[arg(long)]
     #[arg(requires = "genesis")]
+    #[arg(env = "TORII_DB")]
     #[arg(help = "Path to custom torii.sqlite for torii (generated with genesis)")]
-    pub torii_db: Option<PathBuf>,
+    pub torii_db: Option<String>,
 
     #[arg(long)]
     #[arg(requires = "genesis")]
+    #[arg(env = "MANIFEST")]
     #[arg(help = "Path to custom manifest.json accompanying custom genesis.json")]
-    pub manifest: Option<PathBuf>,
+    pub manifest: Option<String>,
 }
 
 #[derive(Debug, Args, Clone)]
@@ -226,7 +233,7 @@ impl KeikoArgs {
     /**
      * checks if keiko should run katana
      */
-    pub fn can_run_katana(&self) -> bool {
+    pub fn should_run_katana(&self) -> bool {
         self.slot.slot_katana_url.is_none()
     }
 
@@ -265,12 +272,6 @@ impl KeikoArgs {
             args.push(fork_block_number.to_string())
         }
 
-        args.push("--seed".to_string());
-        args.push(self.starknet.seed.clone());
-
-        args.push("--accounts".to_string());
-        args.push(self.starknet.total_accounts.to_string());
-
         if self.starknet.disable_fee {
             args.push("--disable-fee".to_string())
         }
@@ -293,15 +294,27 @@ impl KeikoArgs {
             args.push(invoke_max_steps.to_string());
         }
 
+        if let Some(genesis) = &self.keiko.genesis {
+            args.push("--genesis".to_string());
+            args.push(genesis.to_string());
+        } else {
+            args.push("--seed".to_string());
+            args.push(self.starknet.seed.clone());
+
+            args.push("--accounts".to_string());
+            args.push(self.starknet.total_accounts.to_string());
+        }
+
+
         args
     }
 
     /**
      * checks if keiko should run torii
      */
-    pub fn can_run_torii(&self) -> bool {
+    pub fn should_run_torii(&self) -> bool {
         match self.slot.slot_torii_url {
-            None => self.can_run_katana() || self.world.address.is_some(),
+            None => self.should_run_katana() || self.world.address.is_some(),
             Some(_) => false
         }
     }
