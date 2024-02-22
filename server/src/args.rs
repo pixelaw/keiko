@@ -8,6 +8,8 @@ use std::net::SocketAddr;
 
 const LOCAL_KATANA: &str = "http://0.0.0.0:5050";
 const LOCAL_TORII: &str = "http://0.0.0.0:8080";
+const KATANA_GENESIS_PATH: &str = "config/genesis.json";
+const KATANA_DB_PATH: &str = "storage/katana-db";
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -18,20 +20,8 @@ pub struct KeikoArgs {
     pub server: ServerOptions,
 
     #[command(flatten)]
-    #[command(next_help_heading = "Keiko options")]
-    pub keiko: KeikoOptions,
-
-    #[command(flatten)]
     #[command(next_help_heading = "Starknet options")]
     pub starknet: StarknetOptions,
-
-    #[command(flatten)]
-    #[command(next_help_heading = "Slot options")]
-    pub slot: SlotOptions,
-
-    #[command(flatten)]
-    #[command(next_help_heading = "World options")]
-    pub world: WorldOptions,
 
     #[command(flatten)]
     #[command(next_help_heading = "Katana options")]
@@ -39,23 +29,73 @@ pub struct KeikoArgs {
 }
 
 #[derive(Debug, Args, Clone)]
-pub struct KeikoOptions {
+pub struct ServerOptions {
     #[arg(long)]
-    #[arg(env = "GENESIS")]
-    #[arg(help = "Path to custom genesis.json for katana")]
-    pub genesis: Option<String>,
+    #[arg(default_value = "3000")]
+    #[arg(help = "Port number to listen on.")]
+    #[arg(env = "SERVER_PORT")]
+    pub port: u16,
+
+    #[arg(short, long)]
+    #[arg(default_value = "contracts")]
+    #[arg(value_parser = PathBuf::from_str)]
+    #[arg(help = "Path to the contracts directory")]
+    #[arg(env = "CONTRACT_PATH")]
+    pub contract_path: PathBuf,
 
     #[arg(long)]
-    #[arg(requires = "genesis")]
-    #[arg(env = "TORII_DB")]
-    #[arg(help = "Path to custom torii.sqlite for torii (generated with genesis)")]
-    pub torii_db: Option<String>,
+    #[arg(default_value = "static")]
+    #[arg(value_parser = PathBuf::from_str)]
+    #[arg(help = "Path to the static directory")]
+    #[arg(env = "STATIC_PATH")]
+    pub static_path: PathBuf,
 
     #[arg(long)]
-    #[arg(requires = "genesis")]
-    #[arg(env = "MANIFEST")]
-    #[arg(help = "Path to custom manifest.json accompanying custom genesis.json")]
-    pub manifest: Option<String>,
+    #[arg(default_value = "false")]
+    #[arg(help = "Builds the dashboard if set to true")]
+    #[arg(env = "PROD")]
+    pub prod: bool,
+}
+
+
+#[derive(Debug, Args, Clone)]
+pub struct StarknetOptions {
+    #[arg(long)]
+    #[arg(help = "Disable charging fee for transactions.")]
+    #[arg(env = "DISABLE_FEE")]
+    pub disable_fee: bool,
+
+    #[arg(long)]
+    #[arg(help = "Disable validation when executing transactions.")]
+    pub disable_validate: bool,
+
+    #[command(flatten)]
+    #[command(next_help_heading = "Environment options")]
+    pub environment: EnvironmentOptions,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct EnvironmentOptions {
+    #[arg(long)]
+    #[arg(help = "The chain ID.")]
+    #[arg(default_value = "KATANA")]
+    #[arg(env = "CHAIN_ID")]
+    pub chain_id: String,
+
+    #[arg(long)]
+    #[arg(help = "The gas price.")]
+    #[arg(env = "GAS_PRICE")]
+    pub gas_price: Option<u128>,
+
+    #[arg(long)]
+    #[arg(help = "The maximum number of steps available for the account validation logic.")]
+    #[arg(env = "VALIDATE_MAX_STEPS")]
+    pub validate_max_steps: Option<u32>,
+
+    #[arg(long)]
+    #[arg(help = "The maximum number of steps available for the account execution logic.")]
+    #[arg(env = "INVOKE_MAX_STEPS")]
+    pub invoke_max_steps: Option<u32>,
 }
 
 #[derive(Debug, Args, Clone)]
@@ -119,130 +159,16 @@ pub struct KatanaOptions {
 }
 
 
-#[derive(Debug, Args, Clone)]
-pub struct SlotOptions {
-    #[arg(long)]
-    #[arg(help = "the url to the deployed slot katana")]
-    #[arg(env = "SLOT_KATANA")]
-    pub slot_katana_url: Option<Url>,
-
-    #[arg(long)]
-    #[arg(help = "the url to the deployed slot torii")]
-    #[arg(env = "SLOT_TORII")]
-    pub slot_torii_url: Option<Url>,
-}
-
-#[derive(Debug, Args, Clone)]
-pub struct WorldOptions {
-    #[arg(long)]
-    #[arg(help = "the world address")]
-    #[arg(env = "WORLD_ADDRESS")]
-    pub address: Option<String>,
-
-    #[arg(long)]
-    #[arg(help = "the world salt")]
-    #[arg(env = "WORLD_NAME")]
-    pub name: Option<String>,
-}
-
-#[derive(Debug, Args, Clone)]
-pub struct ServerOptions {
-    #[arg(long)]
-    #[arg(default_value = "3000")]
-    #[arg(help = "Port number to listen on.")]
-    #[arg(env = "SERVER_PORT")]
-    pub port: u16,
-
-    #[arg(short, long)]
-    #[arg(default_value = "contracts")]
-    #[arg(value_parser = PathBuf::from_str)]
-    #[arg(help = "Path to the contracts directory")]
-    #[arg(env = "CONTRACT_PATH")]
-    pub contract_path: PathBuf,
-
-    #[arg(long)]
-    #[arg(default_value = "static")]
-    #[arg(value_parser = PathBuf::from_str)]
-    #[arg(help = "Path to the static directory")]
-    #[arg(env = "STATIC_PATH")]
-    pub static_path: PathBuf,
-
-    #[arg(long)]
-    #[arg(default_value = "manifests")]
-    #[arg(help = "Path to the manifests directory")]
-    #[arg(env = "MANIFEST_DIRECTORY_PATH")]
-    pub manifest_directory_path: String,
-
-    #[arg(long)]
-    #[arg(default_value = "false")]
-    #[arg(help = "Builds the dashboard if set to true")]
-    #[arg(env = "PROD")]
-    pub prod: bool,
-}
-
-#[derive(Debug, Args, Clone)]
-pub struct StarknetOptions {
-    #[arg(long)]
-    #[arg(default_value = "0")]
-    #[arg(help = "Specify the seed for randomness of accounts to be predeployed.")]
-    #[arg(env = "SEED")]
-    pub seed: String,
-
-    #[arg(long = "accounts")]
-    #[arg(value_name = "NUM")]
-    #[arg(default_value = "10")]
-    #[arg(help = "Number of pre-funded accounts to generate.")]
-    #[arg(env = "TOTAL_ACCOUNTS")]
-    pub total_accounts: u8,
-
-    #[arg(long)]
-    #[arg(help = "Disable charging fee for transactions.")]
-    #[arg(env = "DISABLE_FEE")]
-    pub disable_fee: bool,
-
-    #[command(flatten)]
-    #[command(next_help_heading = "Environment options")]
-    pub environment: EnvironmentOptions,
-}
-
-#[derive(Debug, Args, Clone)]
-pub struct EnvironmentOptions {
-    #[arg(long)]
-    #[arg(help = "The chain ID.")]
-    #[arg(default_value = "KATANA")]
-    #[arg(env = "CHAIN_ID")]
-    pub chain_id: String,
-
-    #[arg(long)]
-    #[arg(help = "The gas price.")]
-    #[arg(env = "GAS_PRICE")]
-    pub gas_price: Option<u128>,
-
-    #[arg(long)]
-    #[arg(help = "The maximum number of steps available for the account validation logic.")]
-    #[arg(env = "VALIDATE_MAX_STEPS")]
-    pub validate_max_steps: Option<u32>,
-
-    #[arg(long)]
-    #[arg(help = "The maximum number of steps available for the account execution logic.")]
-    #[arg(env = "INVOKE_MAX_STEPS")]
-    pub invoke_max_steps: Option<u32>,
-}
-
 impl KeikoArgs {
-    /**
-     * checks if keiko should run katana
-     */
-    pub fn should_run_katana(&self) -> bool {
-        self.slot.slot_katana_url.is_none()
-    }
-
     /**
      * gets all katana args to run katana with
      */
     pub fn get_katana_args(&self) -> Vec<String> {
-        // FIXME by default katana runs on dev mode
-        let mut args = vec!["--dev".to_string()];
+        let mut args = vec![];
+
+        if self.katana.katana_dev {
+            args.push("--dev".to_string())
+        }
 
         if self.katana.katana_silent {
             args.push("--silent".to_string())
@@ -257,15 +183,12 @@ impl KeikoArgs {
             args.push(block_time.to_string());
         }
 
-
         if let Some(rpc_url) = &self.katana.katana_rpc_url {
             args.push("--rpc-url".to_string());
             args.push(rpc_url.to_string())
         }
 
-        // if self.katana.katana_json_log {
         args.push("--json-log".to_string());
-        // }
 
         if let Some(fork_block_number) = &self.katana.katana_fork_block_number {
             args.push("--fork-block-number".to_string());
@@ -294,30 +217,12 @@ impl KeikoArgs {
             args.push(invoke_max_steps.to_string());
         }
 
-        if let Some(genesis) = &self.keiko.genesis {
-            args.push("--genesis".to_string());
-            args.push(genesis.to_string());
-        } else {
-            args.push("--seed".to_string());
-            args.push(self.starknet.seed.clone());
-
-            args.push("--accounts".to_string());
-            args.push(self.starknet.total_accounts.to_string());
-        }
-
+        args.push("--genesis".to_string());
+        args.push(KATANA_GENESIS_PATH.to_string());
 
         args
     }
 
-    /**
-     * checks if keiko should run torii
-     */
-    pub fn should_run_torii(&self) -> bool {
-        match self.slot.slot_torii_url {
-            None => self.should_run_katana() || self.world.address.is_some(),
-            Some(_) => false
-        }
-    }
 
     /**
      * creates a json_rpc_client from katana
@@ -332,14 +237,14 @@ impl KeikoArgs {
      * creates the rpc_url
      */
     pub fn rpc_url(&self) -> Url {
-        self.slot.slot_katana_url.clone().unwrap_or(Url::parse(LOCAL_KATANA).unwrap())
+        Url::parse(LOCAL_KATANA).unwrap()
     }
 
     /*
     *    creates the torii_url
     */
     pub fn torii_url(&self) -> Url {
-        self.slot.slot_torii_url.clone().unwrap_or(Url::parse(LOCAL_TORII).unwrap())
+        Url::parse(LOCAL_TORII).unwrap()
     }
 
     /*
@@ -348,21 +253,18 @@ impl KeikoArgs {
     pub fn server_state(&self) -> server_state::ServerState {
 
         // add world_address if it is supplied
-        let manifest_directory_path = match &self.world.address {
-            None => self.server.manifest_directory_path.clone(),
-            Some(world_address) => format!("{}/{}", &self.server.manifest_directory_path, world_address)
-        };
-
+        // let manifest_directory_path = match &self.world.address {
+        //     None => self.server.manifest_directory_path.clone(),
+        //     Some(world_address) => format!("{}/{}", &self.server.manifest_directory_path, world_address)
+        // };
+        // TODO
+        let manifest_directory_path = "".to_string();
 
         server_state::ServerState {
             json_rpc_client: self.json_rpc_client(),
             rpc_url: self.rpc_url(),
             manifest_directory_path,
             torii_url: self.torii_url(),
-            starknet: server_state::StarknetOptions {
-                seed: self.starknet.seed.clone(),
-                total_accounts: self.starknet.total_accounts.clone(),
-            },
         }
     }
 }

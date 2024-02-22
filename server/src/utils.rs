@@ -1,15 +1,5 @@
-use std::env::current_dir;
-use std::fs::write;
-use std::io;
-use std::net::TcpListener;
-use std::process::{Command, Output};
-use std::time::Duration;
-use dojo_world::manifest::Manifest;
-use log::{debug, error};
-use run_script::types::{ScriptOptions, ScriptResult};
-use tokio::time::sleep;
-// use keiko_api::handlers::katana::account::{get_serialized_accounts, SerializedAccount};
-use crate::args::KeikoArgs;
+use std::net::{SocketAddr, TcpListener};
+use tokio::net::TcpStream;
 
 const UPDATE_CONTRACTS: &str =
     r#"#!/bin/bash
@@ -60,6 +50,14 @@ fn is_port_open(port: u16) -> bool {
     }
 }
 
+pub async fn wait_for_port(addr: SocketAddr) {
+    loop {
+        if TcpStream::connect(addr).await.is_ok() {
+            break;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await; // Sleep for a second
+    }
+}
 //
 // fn update_account(account: &SerializedAccount, options: &ScriptOptions) -> ScriptResult<(i32, String, String)> {
 //     let script = format!(
@@ -167,3 +165,13 @@ fn is_port_open(port: u16) -> bool {
 //         .spawn()
 //         .expect("Failed to start torii");
 // }
+
+pub async fn wait_for_non_empty_file(path: &str) {
+    loop {
+        let contents = tokio::fs::read_to_string(path).await.expect("Failed to read file");
+        if !contents.is_empty() {
+            break;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await; // Sleep for a second
+    }
+}

@@ -3,10 +3,8 @@
 **/.env
 **/target
 **/node_modules
-/server/indexer.db
-/server/manifests/
-server/manifest.json
-server/genesis.json
-server/*.log.json
-server/*.log
-server/*.sqlite
+
+server/config/manifest.json
+server/config/genesis.json
+server/log/*
+server/storage/*

@@ -7,11 +7,4 @@ pub struct ServerState {
     pub rpc_url: Url,
     pub manifest_directory_path: String,
     pub torii_url: Url,
-    pub starknet: StarknetOptions
-}
-
-#[derive(Clone)]
-pub struct StarknetOptions {
-    pub seed: String,
-    pub total_accounts: u8
 }

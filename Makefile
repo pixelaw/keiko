@@ -5,7 +5,7 @@ DOJO_VERSION = $(shell cat DOJO_VERSION)
 
 # Example: make docker-build version=v1.1.0
 build:
-	depot build -t $(REPO):$(VERSION) -t $(REPO):latest --build-arg DOJO_VERSION=$(DOJO_VERSION) .
+	depot build --load -t $(REPO):$(VERSION) -t $(REPO):latest --build-arg DOJO_VERSION=$(DOJO_VERSION) .
 
 # Example: make docker-run version=v1.2.9
 run:

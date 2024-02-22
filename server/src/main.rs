@@ -1,7 +1,7 @@
 use std::env::current_dir;
 use std::net::SocketAddr;
 use crate::args::KeikoArgs;
-use clap::{Parser};
+use clap::Parser;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
 use axum::http::Method;
@@ -21,8 +21,9 @@ mod utils;
 
 const KEIKO_ASSETS: &str = "static/keiko/assets";
 const KEIKO_INDEX: &str = "static/keiko/index.html";
-const KATANA_LOG: &str = "katana.log.json";
-const TORII_LOG: &str = "torii.log";
+const KATANA_LOG: &str = "log/katana.log.json";
+const TORII_LOG: &str = "log/torii.log";
+const CONFIG_MANIFEST: &str = "config/manifest.json";
 
 #[tokio::main]
 async fn main() {
@@ -36,72 +37,58 @@ async fn main() {
     }
 
     // Start Katana if needed
-    let katana = match config.should_run_katana() {
-        true => {
-            let katana_args = config.get_katana_args();
-            let result = Some(task::spawn(async move {
-                let output = File::create(KATANA_LOG).expect("Failed to create file");
+    let katana = {
+        let katana_args = config.get_katana_args();
+        let result = task::spawn(async move {
+            let output = File::create(KATANA_LOG).expect("Failed to create file");
 
-                Command::new("katana")
-                    .args(katana_args)
-                    .stdout(Stdio::from(output))
-                    .spawn()
-                    .expect("Failed to start process");
-            }));
-
-            wait_for_non_empty_file(KATANA_LOG).await;
-            result
-        }
-        false => None
+            Command::new("katana")
+                .args(katana_args)
+                .stdout(Stdio::from(output))
+                .spawn()
+                .expect("Failed to start process");
+        });
+        // Wait until katana is listening on 5050
+        utils::wait_for_port("127.0.0.1:5050".parse().unwrap()).await;
+        result
     };
 
-    let mut world_address = String::from("");
+    // Get the world address from the manifest
+    let manifest_json: Value = serde_json::from_reader(
+        File::open(CONFIG_MANIFEST).expect("File should open read only")
+    ).expect("Cannot parse config/manifest.json");
+
+    let world_address = manifest_json["world"]["address"].as_str().unwrap().to_string();
+
     let rpc_url = "http://localhost:5050";
 
-    // Check if we're starting with a Dojo Genesis
-    if let (Some(genesis), Some(manifest)) = (&config.keiko.genesis, &config.keiko.manifest) {
-        // It looks like the Genesis has deployed contracts already
-        let file = File::open(manifest.clone()).expect("File should open read only");
-        let json: Value = serde_json::from_reader(file).expect("Manifest was not well-formatted");
-        world_address = json["world"]["address"].as_str().unwrap().to_string();
-        println!("World address: {}", world_address);
-
-        // TODO do we need the world owner address here?
-        // TODO also, what happens if the genesis has World deployments but the current scarb.toml has a different account?
-    }
 
     // TODO Modify the Scarb.toml if needed with world address
 
     // TODO Deploy Dojo/contracts if needed
 
     // Start Torii if needed
-    let torii = match config.should_run_torii() {
-        true => {
-            let mut args: Vec<String> = vec![];
-            args.push("--world".to_string());
-            args.push(world_address.to_string());
+    let torii = {
+        let mut args: Vec<String> = vec![];
+        args.push("--world".to_string());
+        args.push(world_address.to_string());
 
-            // if let Some(genesis) = &self.keiko.genesis {
-            if let Some(torii_db) = config.keiko.torii_db.clone() {
-                args.push("--database".to_string());
-                args.push(format!("sqlite:///{}/{}", current_dir().unwrap().display(), torii_db.clone().to_string()));
-            }
+        args.push("--database".to_string());
+        args.push(format!("sqlite:///{}/storage/torii.sqlite", current_dir().unwrap().display()));
 
-            let result = Some(task::spawn(async move {
-                let output = File::create(TORII_LOG).expect("Failed to create file");
+        let result = task::spawn(async move {
+            let output = File::create(TORII_LOG).expect("Failed to create file");
 
-                Command::new("torii")
-                    .stdout(Stdio::from(output))
-                    .args(args)
-                    .spawn()
-                    .expect("Failed to start torii");
-            }));
+            Command::new("torii")
+                .stdout(Stdio::from(output))
+                .args(args)
+                .spawn()
+                .expect("Failed to start torii");
+        });
 
-            wait_for_non_empty_file(TORII_LOG).await;
-            result
-        }
+        utils::wait_for_port("127.0.0.1:8080".parse().unwrap()).await;
 
-        false => None
+        result
     };
 
     let cors = CorsLayer::new()
@@ -113,17 +100,16 @@ async fn main() {
 
     let mut router = Router::new();
 
-    if config.should_run_katana() {
-        router = router
-            .route(
-                "/api/state",
-                get(katana::state::save_state)
-                    .on(MethodFilter::PUT, katana::state::load_state)
-                    .on(MethodFilter::DELETE, katana::state::reset_state),
-            )
-            .route("/api/fund", get(katana::funds::handler))
-            .route("/api/block", on(MethodFilter::POST, katana::block::handler))
-    }
+
+    router = router
+        .route(
+            "/api/state",
+            get(katana::state::save_state)
+                .on(MethodFilter::PUT, katana::state::load_state)
+                .on(MethodFilter::DELETE, katana::state::reset_state),
+        )
+        .route("/api/fund", get(katana::funds::handler))
+        .route("/api/block", on(MethodFilter::POST, katana::block::handler));
 
 
     router = router
@@ -160,22 +146,7 @@ async fn main() {
         }
     }
 
-
-    if let Some(katana) = katana {
-        katana.abort();
-    }
-
-    // if let Some(torii) = torii {
-    //     torii.abort();
-    // }
-}
-
-async fn wait_for_non_empty_file(path: &str) {
-    loop {
-        let contents = tokio::fs::read_to_string(path).await.expect("Failed to read file");
-        if !contents.is_empty() {
-            break;
-        }
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await; // Sleep for a second
-    }
+    // Close Katana and Torii
+    katana.abort();
+    torii.abort();
 }
