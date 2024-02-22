@@ -82,6 +82,13 @@ RUN source ~/.bashrc
 ENV PATH="/root/.dojo/bin:${PATH}"
 RUN dojoup -v $DOJO_VERSION
 
+# Install starkli
+SHELL ["/bin/bash", "-c"]
+RUN curl https://get.starkli.sh | bash
+RUN source ~/.bashrc
+ENV PATH="/root/.starkli/bin:${PATH}"
+RUN starkliup
+
 # TODO copy the dojo_examples, build them
 
 WORKDIR /keiko
