@@ -3,7 +3,6 @@ use crate::args::KeikoArgs;
 use clap::{Parser};
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
-use std::process::Command;
 use axum::http::Method;
 use axum::Router;
 use axum::routing::{get, get_service, MethodFilter, on};
@@ -12,12 +11,15 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::cors::{Any, CorsLayer};
 use keiko_api::handlers::{katana, keiko};
 use crate::utils::run_torii;
+use std::process::{Command, Stdio};
+use std::fs::File;
 
 mod args;
 mod utils;
 
 const KEIKO_ASSETS: &str = "static/keiko/assets";
 const KEIKO_INDEX: &str = "static/keiko/index.html";
+const KATANA_LOG: &str = "katana.log.json";
 
 #[tokio::main]
 async fn main() {
@@ -30,19 +32,32 @@ async fn main() {
             .expect("Failed to build dashboard");
     }
 
+    // Start Katana if needed
     let katana = match config.can_run_katana() {
         true => {
             let katana_args = config.get_katana_args();
             Some(task::spawn(async move {
+                let output = File::create(KATANA_LOG).expect("Failed to create file");
+
                 Command::new("katana")
                     .args(katana_args)
+                    .stdout(Stdio::from(output))
                     .spawn()
                     .expect("Failed to start process");
+
+                wait_for_non_empty_file(KATANA_LOG).await;
             }))
         }
         false => None
     };
 
+    // Check if we got a World address already
+    
+    // Deploy Dojo if needed
+
+    // Deploy contracts if needed
+
+    // Start Torii if needed
     let torii = match config.can_run_torii() {
         true => {
             let config = config.clone();
@@ -116,5 +131,15 @@ async fn main() {
 
     if let Some(torii) = torii {
         torii.abort();
+    }
+}
+
+async fn wait_for_non_empty_file(path: &str) {
+    loop {
+        let contents = tokio::fs::read_to_string(path).await.expect("Failed to read file");
+        if !contents.is_empty() {
+            break;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await; // Sleep for a second
     }
 }

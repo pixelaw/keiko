@@ -4,6 +4,7 @@ use jsonrpsee_http_client::{HttpClient, HttpClientBuilder};
 use url::Url;
 use std::str::FromStr;
 use keiko_api::server_state;
+use std::net::SocketAddr;
 
 const LOCAL_KATANA: &str = "http://0.0.0.0:5050";
 const LOCAL_TORII: &str = "http://0.0.0.0:8080";
@@ -30,53 +31,84 @@ pub struct KeikoArgs {
 
     #[command(flatten)]
     #[command(next_help_heading = "Katana options")]
-    pub katana: KatanaOptions
+    pub katana: KatanaOptions,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct KeikoOptions {
+    #[arg(long)]
+    #[arg(help = "Path to custom genesis.json for katana")]
+    pub genesis: Option<PathBuf>,
+
+    #[arg(long)]
+    #[arg(requires = "genesis")]
+    #[arg(help = "Path to custom torii.sqlite for torii (generated with genesis)")]
+    pub torii_db: Option<PathBuf>,
+
+    #[arg(long)]
+    #[arg(requires = "genesis")]
+    #[arg(help = "Path to custom manifest.json accompanying custom genesis.json")]
+    pub manifest: Option<PathBuf>,
 }
 
 #[derive(Debug, Args, Clone)]
 pub struct KatanaOptions {
     #[arg(long)]
     #[arg(help = "Don't print anything on startup.")]
-    #[arg(env = "KATANA_SILENT_LOGS")]
-    pub silent: bool,
+    pub katana_silent: bool,
 
     #[arg(long)]
-    #[arg(conflicts_with = "block_time")]
+    #[arg(conflicts_with = "katana_block_time")]
     #[arg(help = "Disable auto and interval mining, and mine on demand instead via an endpoint.")]
-    #[arg(env = "KATANA_NO_MINING")]
-    pub no_mining: bool,
+    pub katana_no_mining: bool,
 
     #[arg(short, long)]
     #[arg(value_name = "MILLISECONDS")]
     #[arg(help = "Block time in milliseconds for interval mining.")]
-    #[arg(env = "KATANA_BLOCK_TIME")]
-    pub block_time: Option<u64>,
+    pub katana_block_time: Option<u64>,
 
     #[arg(long)]
     #[arg(value_name = "PATH")]
-    #[arg(help = "Dump the state of chain on exit to the given file.")]
-    #[arg(long_help = "Dump the state of chain on exit to the given file. If the value is a \
-                       directory, the state will be written to `<PATH>/state.bin`.")]
-    #[arg(env = "KATANA_DUMP_STATE")]
-    pub dump_state: Option<PathBuf>,
+    #[arg(help = "Directory path of the database to initialize from.")]
+    #[arg(long_help = "Directory path of the database to initialize from. The path must either \
+                       be an empty directory or a directory which already contains a previously \
+                       initialized Katana database.")]
+    pub katana_db_dir: Option<PathBuf>,
 
     #[arg(long)]
     #[arg(value_name = "URL")]
     #[arg(help = "The Starknet RPC provider to fork the network from.")]
-    #[arg(env = "KATANA_FORK_RPC_URL")]
-    pub rpc_url: Option<Url>,
+    pub katana_rpc_url: Option<Url>,
+
+    #[arg(long)]
+    pub katana_dev: bool,
 
     #[arg(long)]
     #[arg(help = "Output logs in JSON format.")]
-    #[arg(env = "KATANA_JSON_LOG")]
-    pub json_log: bool,
+    pub katana_json_log: bool,
+
+    /// Enable Prometheus metrics.
+    ///
+    /// The metrics will be served at the given interface and port.
+    // #[arg(long, value_name = "SOCKET", value_parser = parse_socket_address, help_heading = "Metrics")]
+    pub katana_metrics: Option<SocketAddr>,
 
     #[arg(long)]
-    #[arg(requires = "rpc_url")]
+    #[arg(requires = "katana_rpc_url")]
     #[arg(value_name = "BLOCK_NUMBER")]
     #[arg(help = "Fork the network at a specific block.")]
-    #[arg(env = "KATANA_FORK_BLOCK_NUMBER")]
-    pub fork_block_number: Option<u64>
+    pub katana_fork_block_number: Option<u64>,
+
+    #[cfg(feature = "messaging")]
+    #[arg(long)]
+    #[arg(value_name = "PATH")]
+    #[arg(value_parser = katana_core::service::messaging::MessagingConfig::parse)]
+    #[arg(help = "Configure the messaging with an other chain.")]
+    #[arg(long_help = "Configure the messaging to allow Katana listening/sending messages on a \
+                       settlement chain that can be Ethereum or an other Starknet sequencer. \
+                       The configuration file details and examples can be found here: https://book.dojoengine.org/toolchain/katana/reference#messaging")]
+    pub katana_messaging: Option<katana_core::service::messaging::MessagingConfig>,
+
 }
 
 
@@ -85,12 +117,12 @@ pub struct SlotOptions {
     #[arg(long)]
     #[arg(help = "the url to the deployed slot katana")]
     #[arg(env = "SLOT_KATANA")]
-    pub katana: Option<Url>,
+    pub slot_katana_url: Option<Url>,
 
     #[arg(long)]
     #[arg(help = "the url to the deployed slot torii")]
     #[arg(env = "SLOT_TORII")]
-    pub torii: Option<Url>,
+    pub slot_torii_url: Option<Url>,
 }
 
 #[derive(Debug, Args, Clone)]
@@ -127,7 +159,6 @@ pub struct ServerOptions {
     #[arg(help = "Path to the static directory")]
     #[arg(env = "STATIC_PATH")]
     pub static_path: PathBuf,
-
 
     #[arg(long)]
     #[arg(default_value = "manifests")]
@@ -192,49 +223,44 @@ pub struct EnvironmentOptions {
 }
 
 impl KeikoArgs {
-
     /**
      * checks if keiko should run katana
      */
     pub fn can_run_katana(&self) -> bool {
-        self.slot.katana.is_none()
+        self.slot.slot_katana_url.is_none()
     }
 
     /**
      * gets all katana args to run katana with
      */
     pub fn get_katana_args(&self) -> Vec<String> {
-        // by default katana runs on dev mode
+        // FIXME by default katana runs on dev mode
         let mut args = vec!["--dev".to_string()];
 
-        if self.katana.silent {
+        if self.katana.katana_silent {
             args.push("--silent".to_string())
         }
 
-        if self.katana.no_mining {
+        if self.katana.katana_no_mining {
             args.push("--no-mining".to_string())
         }
 
-        if let Some(block_time) = &self.katana.block_time {
+        if let Some(block_time) = &self.katana.katana_block_time {
             args.push("--block-time".to_string());
             args.push(block_time.to_string());
         }
 
-        if let Some(dump_state) = &self.katana.dump_state {
-            args.push("--dump-state".to_string());
-            args.push(dump_state.to_str().unwrap().to_string())
-        }
 
-        if let Some(rpc_url) = &self.katana.rpc_url {
+        if let Some(rpc_url) = &self.katana.katana_rpc_url {
             args.push("--rpc-url".to_string());
             args.push(rpc_url.to_string())
         }
 
-        if self.katana.json_log {
-            args.push("--json-log".to_string());
-        }
+        // if self.katana.katana_json_log {
+        args.push("--json-log".to_string());
+        // }
 
-        if let Some(fork_block_number) = &self.katana.fork_block_number {
+        if let Some(fork_block_number) = &self.katana.katana_fork_block_number {
             args.push("--fork-block-number".to_string());
             args.push(fork_block_number.to_string())
         }
@@ -268,14 +294,13 @@ impl KeikoArgs {
         }
 
         args
-
     }
 
     /**
      * checks if keiko should run torii
      */
     pub fn can_run_torii(&self) -> bool {
-        match self.slot.torii {
+        match self.slot.slot_torii_url {
             None => self.can_run_katana() || self.world.address.is_some(),
             Some(_) => false
         }
@@ -294,14 +319,14 @@ impl KeikoArgs {
      * creates the rpc_url
      */
     pub fn rpc_url(&self) -> Url {
-        self.slot.katana.clone().unwrap_or(Url::parse(LOCAL_KATANA).unwrap())
+        self.slot.slot_katana_url.clone().unwrap_or(Url::parse(LOCAL_KATANA).unwrap())
     }
 
     /*
     *    creates the torii_url
     */
     pub fn torii_url(&self) -> Url {
-        self.slot.torii.clone().unwrap_or(Url::parse(LOCAL_TORII).unwrap())
+        self.slot.slot_torii_url.clone().unwrap_or(Url::parse(LOCAL_TORII).unwrap())
     }
 
     /*
@@ -327,5 +352,4 @@ impl KeikoArgs {
             },
         }
     }
-
 }
