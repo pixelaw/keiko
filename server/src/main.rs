@@ -1,6 +1,6 @@
 use std::env::current_dir;
 use std::net::SocketAddr;
-use crate::args::KeikoArgs;
+use crate::args::{Config};
 use clap::Parser;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
@@ -11,7 +11,6 @@ use tower_http::add_extension::AddExtensionLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::cors::{Any, CorsLayer};
 use keiko_api::handlers::{katana, keiko};
-// use crate::utils::run_torii;
 use std::process::{Command, Stdio};
 use std::fs::File;
 use serde_json::Value;
@@ -27,7 +26,7 @@ const CONFIG_MANIFEST: &str = "config/manifest.json";
 
 #[tokio::main]
 async fn main() {
-    let config = KeikoArgs::parse();
+    let mut config = Config::new();
 
     if config.server.prod {
         Command::new("npx")
@@ -36,22 +35,7 @@ async fn main() {
             .expect("Failed to build dashboard");
     }
 
-    // Start Katana if needed
-    let katana = {
-        let katana_args = config.get_katana_args();
-        let result = task::spawn(async move {
-            let output = File::create(KATANA_LOG).expect("Failed to create file");
-
-            Command::new("katana")
-                .args(katana_args)
-                .stdout(Stdio::from(output))
-                .spawn()
-                .expect("Failed to start process");
-        });
-        // Wait until katana is listening on 5050
-        utils::wait_for_port("127.0.0.1:5050".parse().unwrap()).await;
-        result
-    };
+    let katana = start_katana(config.get_katana_args()).await;
 
     // Get the world address from the manifest
     let manifest_json: Value = serde_json::from_reader(
@@ -59,37 +43,15 @@ async fn main() {
     ).expect("Cannot parse config/manifest.json");
 
     let world_address = manifest_json["world"]["address"].as_str().unwrap().to_string();
+    config.set_world_address(world_address.to_string());
 
     let rpc_url = "http://localhost:5050";
-
+    let torii = start_torii(world_address).await;
 
     // TODO Modify the Scarb.toml if needed with world address
 
     // TODO Deploy Dojo/contracts if needed
 
-    // Start Torii if needed
-    let torii = {
-        let mut args: Vec<String> = vec![];
-        args.push("--world".to_string());
-        args.push(world_address.to_string());
-
-        args.push("--database".to_string());
-        args.push(format!("sqlite:///{}/storage/torii.sqlite", current_dir().unwrap().display()));
-
-        let result = task::spawn(async move {
-            let output = File::create(TORII_LOG).expect("Failed to create file");
-
-            Command::new("torii")
-                .stdout(Stdio::from(output))
-                .args(args)
-                .spawn()
-                .expect("Failed to start torii");
-        });
-
-        utils::wait_for_port("127.0.0.1:8080".parse().unwrap()).await;
-
-        result
-    };
 
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
@@ -100,19 +62,11 @@ async fn main() {
 
     let mut router = Router::new();
 
+    let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port.clone()));
 
     router = router
-        .route(
-            "/api/state",
-            get(katana::state::save_state)
-                .on(MethodFilter::PUT, katana::state::load_state)
-                .on(MethodFilter::DELETE, katana::state::reset_state),
-        )
         .route("/api/fund", get(katana::funds::handler))
-        .route("/api/block", on(MethodFilter::POST, katana::block::handler));
-
-
-    router = router
+        .route("/api/block", on(MethodFilter::POST, katana::block::handler))
         // .route("/api/accounts", get(katana::account::handler))
         .route(
             "/manifests/:app_name",
@@ -125,9 +79,8 @@ async fn main() {
         .nest_service("/assets", get_service(ServeDir::new(config.server.static_path.join("assets"))))
         .fallback_service(get_service(ServeFile::new(config.server.static_path.join("index.html"))))
         .layer(cors)
-        .layer(AddExtensionLayer::new(config.server_state()));
+        .layer(AddExtensionLayer::new(config));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
 
     let server = axum::Server::bind(&addr)
         .serve(router.into_make_service_with_connect_info::<SocketAddr>());
@@ -135,18 +88,49 @@ async fn main() {
     let mut sigterm = signal(SignalKind::terminate()).unwrap();
 
     tokio::select! {
-        _ = server => {
-            // This arm will run if the server shuts down by itself.
-            println!("Stopping server...");
-
-        }
-        _ = sigterm.recv() => {
-            // This arm will run if a SIGINT signal is received.
-            println!("sigterm received, stopping server...");
-        }
+        _ = server => println!("Stopping server..."),
+        _ = sigterm.recv() => println!("sigterm received, stopping server...")
     }
 
     // Close Katana and Torii
     katana.abort();
     torii.abort();
+}
+
+async fn start_katana(katana_args: Vec<String>) -> task::JoinHandle<()> {
+    let result = task::spawn(async move {
+        let output = File::create(KATANA_LOG).expect("Failed to create file");
+
+        Command::new("katana")
+            .args(katana_args)
+            .stdout(Stdio::from(output))
+            .spawn()
+            .expect("Failed to start process");
+    });
+    // TODO get the server/port from args
+    utils::wait_for_port("127.0.0.1:5050".parse().unwrap()).await;
+    result
+}
+
+async fn start_torii(world_address: String) -> task::JoinHandle<()> {
+    let mut args: Vec<String> = vec![
+        "--world".to_string(),
+        world_address,
+        "--database".to_string(),
+        format!("sqlite:///{}/storage/torii.sqlite", current_dir().unwrap().display()),
+    ];
+
+    let result = task::spawn(async move {
+        let output = File::create(TORII_LOG).expect("Failed to create file");
+
+        Command::new("torii")
+            .stdout(Stdio::from(output))
+            .args(args)
+            .spawn()
+            .expect("Failed to start torii");
+    });
+
+    utils::wait_for_port("127.0.0.1:8080".parse().unwrap()).await;
+
+    result
 }

@@ -5,6 +5,6 @@ use url::Url;
 pub struct ServerState {
     pub json_rpc_client: HttpClient,
     pub rpc_url: Url,
-    pub manifest_directory_path: String,
+    pub manifest_base_dir: String,
     pub torii_url: Url,
 }

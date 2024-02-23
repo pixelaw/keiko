@@ -11,6 +11,33 @@ const LOCAL_TORII: &str = "http://0.0.0.0:8080";
 const KATANA_GENESIS_PATH: &str = "config/genesis.json";
 const KATANA_DB_PATH: &str = "storage/katana-db";
 
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub server: ServerOptions,
+    pub starknet: StarknetOptions,
+    pub katana: KatanaOptions,
+    pub world_address: String,
+}
+
+
+impl From<KeikoArgs> for Config {
+    fn from(args: KeikoArgs) -> Self {
+        Self {
+            server: args.server,
+            starknet: args.starknet,
+            katana: args.katana,
+            world_address: "".to_string(),
+        }
+    }
+}
+
+impl Config {
+    pub fn new() -> Self {
+        let keiko_args = KeikoArgs::parse();
+        Self::from(keiko_args)
+    }
+}
+
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
@@ -159,7 +186,10 @@ pub struct KatanaOptions {
 }
 
 
-impl KeikoArgs {
+impl Config {
+    pub fn set_world_address(&mut self, world_address: String) {
+        self.world_address = world_address;
+    }
     /**
      * gets all katana args to run katana with
      */
@@ -251,19 +281,12 @@ impl KeikoArgs {
     *    gets the server state
     */
     pub fn server_state(&self) -> server_state::ServerState {
-
-        // add world_address if it is supplied
-        // let manifest_directory_path = match &self.world.address {
-        //     None => self.server.manifest_directory_path.clone(),
-        //     Some(world_address) => format!("{}/{}", &self.server.manifest_directory_path, world_address)
-        // };
-        // TODO
-        let manifest_directory_path = "".to_string();
+        let manifest_base_dir = format!("storage/{}", self.world_address);
 
         server_state::ServerState {
             json_rpc_client: self.json_rpc_client(),
             rpc_url: self.rpc_url(),
-            manifest_directory_path,
+            manifest_base_dir,
             torii_url: self.torii_url(),
         }
     }
