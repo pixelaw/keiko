@@ -30,6 +30,7 @@ pub async fn store_manifest(Path(app_name): Path<String>, Extension(server_state
 
 pub async fn get_manifest(Path(app_name): Path<String>, Extension(server_state): Extension<ServerState>) -> impl IntoResponse {
     let path = format!("{}/{}.json", &server_state.manifest_base_dir, app_name);
+    println!("{}", path);
     match fs::read_to_string(&path) {
         Ok(content) => (StatusCode::OK, content),
         Err(ref e) if e.kind() == ErrorKind::NotFound => (StatusCode::NOT_FOUND, "Not Found".into()),

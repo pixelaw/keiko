@@ -22,6 +22,7 @@ const KEIKO_ASSETS: &str = "static/keiko/assets";
 const KEIKO_INDEX: &str = "static/keiko/index.html";
 const KATANA_LOG: &str = "log/katana.log.json";
 const TORII_LOG: &str = "log/torii.log";
+const TORII_DB: &str = "torii.sqlite";
 const CONFIG_MANIFEST: &str = "config/manifest.json";
 
 #[tokio::main]
@@ -35,7 +36,7 @@ async fn main() {
             .expect("Failed to build dashboard");
     }
 
-    let katana = start_katana(config.get_katana_args()).await;
+    let katana = start_katana(&config).await;
 
     // Get the world address from the manifest
     let manifest_json: Value = serde_json::from_reader(
@@ -46,7 +47,7 @@ async fn main() {
     config.set_world_address(world_address.to_string());
 
     let rpc_url = "http://localhost:5050";
-    let torii = start_torii(world_address).await;
+    let torii = start_torii(&config).await;
 
     // TODO Modify the Scarb.toml if needed with world address
 
@@ -79,7 +80,7 @@ async fn main() {
         .nest_service("/assets", get_service(ServeDir::new(config.server.static_path.join("assets"))))
         .fallback_service(get_service(ServeFile::new(config.server.static_path.join("index.html"))))
         .layer(cors)
-        .layer(AddExtensionLayer::new(config));
+        .layer(AddExtensionLayer::new(config.server_state()));
 
 
     let server = axum::Server::bind(&addr)
@@ -97,7 +98,9 @@ async fn main() {
     torii.abort();
 }
 
-async fn start_katana(katana_args: Vec<String>) -> task::JoinHandle<()> {
+async fn start_katana(config: &Config) -> task::JoinHandle<()> {
+    let katana_args = config.get_katana_args();
+
     let result = task::spawn(async move {
         let output = File::create(KATANA_LOG).expect("Failed to create file");
 
@@ -112,12 +115,12 @@ async fn start_katana(katana_args: Vec<String>) -> task::JoinHandle<()> {
     result
 }
 
-async fn start_torii(world_address: String) -> task::JoinHandle<()> {
+async fn start_torii(config: &Config) -> task::JoinHandle<()> {
     let mut args: Vec<String> = vec![
         "--world".to_string(),
-        world_address,
+        config.world_address.clone(),
         "--database".to_string(),
-        format!("sqlite:///{}/storage/torii.sqlite", current_dir().unwrap().display()),
+        format!("{}/{}", config.get_storage_base_dir().clone(), TORII_DB),
     ];
 
     let result = task::spawn(async move {

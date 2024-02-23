@@ -190,9 +190,11 @@ impl Config {
     pub fn set_world_address(&mut self, world_address: String) {
         self.world_address = world_address;
     }
-    /**
-     * gets all katana args to run katana with
-     */
+
+    pub fn get_storage_base_dir(&self) -> String {
+        format!("storage/{}", self.world_address)
+    }
+
     pub fn get_katana_args(&self) -> Vec<String> {
         let mut args = vec![];
 
@@ -281,7 +283,7 @@ impl Config {
     *    gets the server state
     */
     pub fn server_state(&self) -> server_state::ServerState {
-        let manifest_base_dir = format!("storage/{}", self.world_address);
+        let manifest_base_dir = format!("{}/manifests", self.get_storage_base_dir());
 
         server_state::ServerState {
             json_rpc_client: self.json_rpc_client(),
