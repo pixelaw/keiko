@@ -1,3 +1,4 @@
+use std::fs::File;
 use std::path::PathBuf;
 use clap::{Args, Parser};
 use jsonrpsee_http_client::{HttpClient, HttpClientBuilder};
@@ -5,11 +6,20 @@ use url::Url;
 use std::str::FromStr;
 use keiko_api::server_state;
 use std::net::SocketAddr;
+use serde_json::Value;
 
 const LOCAL_KATANA: &str = "http://0.0.0.0:5050";
 const LOCAL_TORII: &str = "http://0.0.0.0:8080";
 const KATANA_GENESIS_PATH: &str = "config/genesis.json";
 const KATANA_DB_PATH: &str = "storage/katana-db";
+
+pub const KEIKO_ASSETS: &str = "static/keiko/assets";
+pub const KEIKO_INDEX: &str = "static/keiko/index.html";
+pub const KATANA_LOG: &str = "log/katana.log.json";
+pub const TORII_LOG: &str = "log/torii.log";
+pub const TORII_DB: &str = "torii.sqlite";
+const CONFIG_MANIFEST: &str = "config/manifest.json";
+
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -34,7 +44,16 @@ impl From<KeikoArgs> for Config {
 impl Config {
     pub fn new() -> Self {
         let keiko_args = KeikoArgs::parse();
-        Self::from(keiko_args)
+        let mut config = Self::from(keiko_args);
+
+        // Get the world address from the manifest
+        let manifest_json: Value = serde_json::from_reader(
+            File::open(CONFIG_MANIFEST).expect("File should open read only")
+        ).expect("Cannot parse config/manifest.json");
+
+        config.set_world_address(manifest_json["world"]["address"].as_str().unwrap().to_string());
+
+        config
     }
 }
 
@@ -191,12 +210,18 @@ impl Config {
         self.world_address = world_address;
     }
 
+    pub fn get_storage_init_base_dir(&self) -> String {
+        format!("storage_init/{}", self.world_address)
+    }
     pub fn get_storage_base_dir(&self) -> String {
         format!("storage/{}", self.world_address)
     }
 
     pub fn get_katana_args(&self) -> Vec<String> {
         let mut args = vec![];
+
+        args.push("--db-dir".to_string());
+        args.push(format!("{}/katana-db", self.get_storage_base_dir()));
 
         if self.katana.katana_dev {
             args.push("--dev".to_string())
