@@ -16,6 +16,7 @@ use std::fs::File;
 use std::path::Path;
 use axum::body::Body;
 use args::{KATANA_LOG, KEIKO_ASSETS, KEIKO_INDEX, TORII_DB, TORII_LOG};
+use fs_extra::dir::{copy, CopyOptions};
 
 mod args;
 mod utils;
@@ -70,12 +71,9 @@ fn ensure_storage_dirs() {
     fs::create_dir_all(&storage_init_dir).expect("Failed to create storage_init dir");
 
     if storage_dir.read_dir().expect("read_dir call failed").next().is_none() {
-        // If dir storage/ is empty, copy all contents of storage_init/ into it
-        for entry in fs::read_dir(&storage_init_dir).expect("read_dir call failed") {
-            let entry = entry.expect("Dir entry failed");
-            let dest_path = storage_dir.join(entry.file_name());
-            fs::copy(entry.path(), dest_path).expect("Copy failed");
-        }
+        let mut options = CopyOptions::new();
+        options.content_only = true;
+        copy(storage_init_dir, storage_dir, &options).expect("Failed to copy directory");
     }
 }
 

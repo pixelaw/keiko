@@ -1,6 +1,4 @@
 ./dashboard/.env
 ./server/.env
-/server/database/indexer.db
-/server/database/indexer.db-shm
-/server/database/indexer.db-wal
-/server/manifests
+/server/storage_init
+/server/storage
