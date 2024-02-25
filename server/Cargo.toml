@@ -15,8 +15,8 @@ serde = "1.0.183"
 serde_json = "1.0.104"
 tokio = { version = "1.31.0", features = ["full"] }
 url = "2.5.0"
-dojo-world = { git = "https://github.com/dojoengine/dojo.git", rev = "1e6ed14e0508b7cdf6b1551cd918e84044bbc2a9", features = ["manifest"] }
-dojo-common = { git = "https://github.com/dojoengine/dojo.git", rev = "1e6ed14e0508b7cdf6b1551cd918e84044bbc2a9", features = [] }
+dojo-world = { git = "https://github.com/dojoengine/dojo.git", rev = "82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37", features = ["manifest"] }
+dojo-common = { git = "https://github.com/dojoengine/dojo.git", rev = "82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37", features = [] }
 
 
 [dependencies]

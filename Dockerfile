@@ -80,7 +80,8 @@ SHELL ["/bin/bash", "-c"]
 RUN curl -L https://install.dojoengine.org | bash
 RUN source ~/.bashrc
 ENV PATH="/root/.dojo/bin:${PATH}"
-RUN dojoup -v $DOJO_VERSION
+RUN #dojoup -v $DOJO_VERSION
+RUN dojoup --commit 82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37
 
 # Install starkli
 SHELL ["/bin/bash", "-c"]
@@ -95,6 +96,9 @@ WORKDIR /keiko
 
 # Contracts
 COPY ./server/contracts ./contracts
+
+# Warm up the git cache for "sozo build"
+RUN cd contracts && sozo build
 
 # Server
 COPY --from=server_builder /app/server/target/release/keiko .
