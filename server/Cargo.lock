@@ -1224,7 +1224,7 @@ dependencies = [
 [[package]]
 name = "dojo-types"
 version = "0.6.0-alpha.1"
-source = "git+https://github.com/dojoengine/dojo.git?rev=82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37#82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37"
+source = "git+https://github.com/dojoengine/dojo.git#82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37"
 dependencies = [
  "crypto-bigint",
  "hex",
@@ -1240,7 +1240,7 @@ dependencies = [
 [[package]]
 name = "dojo-world"
 version = "0.6.0-alpha.1"
-source = "git+https://github.com/dojoengine/dojo.git?rev=82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37#82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37"
+source = "git+https://github.com/dojoengine/dojo.git#82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37"
 dependencies = [
  "anyhow",
  "async-trait",

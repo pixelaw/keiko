@@ -80,8 +80,7 @@ SHELL ["/bin/bash", "-c"]
 RUN curl -L https://install.dojoengine.org | bash
 RUN source ~/.bashrc
 ENV PATH="/root/.dojo/bin:${PATH}"
-RUN #dojoup -v $DOJO_VERSION
-RUN dojoup --commit 82a5bb885b4f74cf3592c3a62ede9d5f4b9a6e37
+RUN dojoup -v $DOJO_VERSION
 
 # Install starkli
 SHELL ["/bin/bash", "-c"]
