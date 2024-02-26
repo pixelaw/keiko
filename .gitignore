@@ -6,6 +6,6 @@
 
 server/config/manifest.json
 server/config/genesis.json
-server/log/*
-/server/storage_init/*
-/server/storage/*
+server/log
+server/storage_init
+server/storage

@@ -1,4 +1,5 @@
 ./dashboard/.env
 ./server/.env
-/server/storage_init
-/server/storage
+server/storage_init
+server/storage
+server/log
