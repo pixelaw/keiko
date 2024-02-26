@@ -1,7 +1,6 @@
 use std::fs;
 use std::net::SocketAddr;
-use crate::args::Config;
-use clap::Parser;
+use crate::args::{Config, CONFIG_MANIFEST};
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
 use axum::http::Method;
@@ -23,7 +22,7 @@ mod utils;
 
 #[tokio::main]
 async fn main() {
-    let mut config = Config::new();
+    let config = Config::new();
 
     if config.server.prod {
         Command::new("npx")
@@ -33,7 +32,7 @@ async fn main() {
     }
 
     // Handle storage dir:
-    ensure_storage_dirs();
+    ensure_storage_dirs(&config);
 
     let katana = start_katana(&config).await;
 
@@ -62,7 +61,7 @@ async fn main() {
     torii.abort();
 }
 
-fn ensure_storage_dirs() {
+fn ensure_storage_dirs(config: &Config) {
     // Handle storage dir:
     let storage_dir = Path::new("storage/");
     let storage_init_dir = Path::new("storage_init/");
@@ -75,6 +74,12 @@ fn ensure_storage_dirs() {
         options.content_only = true;
         copy(storage_init_dir, storage_dir, &options).expect("Failed to copy directory");
     }
+
+    // Copy CONFIG_MANIFEST to the dir "config.get_storage_base_dir()
+    fs::copy(
+        Path::new(CONFIG_MANIFEST),
+        Path::new(&config.get_storage_base_dir()).join("manifests/core.json"),
+    ).expect("Copying core manifest failed");
 }
 
 fn create_router(config: &Config) -> Router<(), Body> {
@@ -122,7 +127,7 @@ async fn start_katana(config: &Config) -> task::JoinHandle<()> {
 }
 
 async fn start_torii(config: &Config) -> task::JoinHandle<()> {
-    let mut args: Vec<String> = vec![
+    let args: Vec<String> = vec![
         "--world".to_string(),
         config.world_address.clone(),
         "--database".to_string(),

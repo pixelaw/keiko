@@ -11,14 +11,13 @@ use serde_json::Value;
 const LOCAL_KATANA: &str = "http://0.0.0.0:5050";
 const LOCAL_TORII: &str = "http://0.0.0.0:8080";
 const KATANA_GENESIS_PATH: &str = "config/genesis.json";
-const KATANA_DB_PATH: &str = "storage/katana-db";
 
 pub const KEIKO_ASSETS: &str = "static/keiko/assets";
 pub const KEIKO_INDEX: &str = "static/keiko/index.html";
 pub const KATANA_LOG: &str = "log/katana.log.json";
 pub const TORII_LOG: &str = "log/torii.log";
 pub const TORII_DB: &str = "torii.sqlite";
-const CONFIG_MANIFEST: &str = "config/manifest.json";
+pub const CONFIG_MANIFEST: &str = "config/manifest.json";
 
 
 #[derive(Debug, Clone)]
@@ -210,9 +209,6 @@ impl Config {
         self.world_address = world_address;
     }
 
-    pub fn get_storage_init_base_dir(&self) -> String {
-        format!("storage_init/{}", self.world_address)
-    }
     pub fn get_storage_base_dir(&self) -> String {
         format!("storage/{}", self.world_address)
     }
