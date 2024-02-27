@@ -62,9 +62,10 @@ async fn main() {
 }
 
 fn ensure_storage_dirs(config: &Config) {
-    // Handle storage dir:
-    let storage_dir = Path::new("storage/");
-    let storage_init_dir = Path::new("storage_init/");
+    let storage_dir = format!("storage/{}/manifests", config.world_address);
+    let storage_init_dir = format!("storage_init/{}/manifests", config.world_address);
+    let storage_dir = Path::new(&storage_dir);
+    let storage_init_dir = Path::new(&storage_init_dir);
 
     fs::create_dir_all(&storage_dir).expect("Failed to create storage dir");
     fs::create_dir_all(&storage_init_dir).expect("Failed to create storage_init dir");
