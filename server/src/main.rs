@@ -1,6 +1,6 @@
 use std::fs;
 use std::net::SocketAddr;
-use crate::args::{Config, CONFIG_MANIFEST};
+use crate::args::{Config};
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
 use axum::http::Method;
@@ -75,12 +75,6 @@ fn ensure_storage_dirs(config: &Config) {
         options.content_only = true;
         copy(storage_init_dir, storage_dir, &options).expect("Failed to copy directory");
     }
-
-    // Copy CONFIG_MANIFEST to the dir "config.get_storage_base_dir()
-    fs::copy(
-        Path::new(CONFIG_MANIFEST),
-        Path::new(&config.get_storage_base_dir()).join("manifests/core.json"),
-    ).expect("Copying core manifest failed");
 }
 
 fn create_router(config: &Config) -> Router<(), Body> {
