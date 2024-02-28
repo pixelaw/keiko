@@ -118,6 +118,7 @@ pub struct StarknetOptions {
 
     #[arg(long)]
     #[arg(help = "Disable validation when executing transactions.")]
+    #[arg(env = "DISABLE_VALIDATE")]
     pub disable_validate: bool,
 
     #[command(flatten)]
@@ -290,6 +291,10 @@ impl Config {
 
         if self.starknet.disable_fee {
             args.push("--disable-fee".to_string())
+        }
+
+        if self.starknet.disable_validate {
+            args.push("--disable-validate".to_string())
         }
 
         args.push("--chain-id".to_string());
