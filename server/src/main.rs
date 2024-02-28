@@ -31,8 +31,8 @@ async fn main() {
             .expect("Failed to build dashboard");
     }
 
-    // Handle storage dir:
-    ensure_storage_dirs(&config);
+    // Handle storage dir: (FIXME)
+    // ensure_storage_dirs(&config);
 
     let katana = start_katana(&config).await;
 
@@ -61,21 +61,22 @@ async fn main() {
     torii.abort();
 }
 
-fn ensure_storage_dirs(config: &Config) {
-    let storage_dir = format!("storage/{}/manifests", config.world_address);
-    let storage_init_dir = format!("storage_init/{}/manifests", config.world_address);
-    let storage_dir = Path::new(&storage_dir);
-    let storage_init_dir = Path::new(&storage_init_dir);
-
-    fs::create_dir_all(&storage_dir).expect("Failed to create storage dir");
-    fs::create_dir_all(&storage_init_dir).expect("Failed to create storage_init dir");
-
-    if storage_dir.read_dir().expect("read_dir call failed").next().is_none() {
-        let mut options = CopyOptions::new();
-        options.content_only = true;
-        copy(storage_init_dir, storage_dir, &options).expect("Failed to copy directory");
-    }
-}
+// FIXME the code below does something weird to the torii.sqlite so it gets migrated again?
+// fn ensure_storage_dirs(config: &Config) {
+//     let storage_dir = format!("storage/{}/manifests", config.world_address);
+//     let storage_init_dir = format!("storage_init/{}/manifests", config.world_address);
+//     let storage_dir = Path::new(&storage_dir);
+//     let storage_init_dir = Path::new(&storage_init_dir);
+//
+//     fs::create_dir_all(&storage_dir).expect("Failed to create storage dir");
+//     fs::create_dir_all(&storage_init_dir).expect("Failed to create storage_init dir");
+//
+//     if storage_dir.read_dir().expect("read_dir call failed").next().is_none() {
+//         let mut options = CopyOptions::new();
+//         options.content_only = true;
+//         copy(storage_init_dir, storage_dir, &options).expect("Failed to copy directory");
+//     }
+// }
 
 fn create_router(config: &Config) -> Router<(), Body> {
     let cors = CorsLayer::new()
