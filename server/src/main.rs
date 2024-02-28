@@ -14,7 +14,7 @@ use std::process::{Command, Stdio};
 use std::fs::File;
 use std::path::Path;
 use axum::body::Body;
-use args::{KATANA_LOG, KEIKO_ASSETS, KEIKO_INDEX, TORII_DB, TORII_LOG};
+use args::{KATANA_LOG, KEIKO_ASSETS, KEIKO_INDEX, TORII_LOG};
 use fs_extra::dir::{copy, CopyOptions};
 
 mod args;
@@ -122,12 +122,7 @@ async fn start_katana(config: &Config) -> task::JoinHandle<()> {
 }
 
 async fn start_torii(config: &Config) -> task::JoinHandle<()> {
-    let args: Vec<String> = vec![
-        "--world".to_string(),
-        config.world_address.clone(),
-        "--database".to_string(),
-        format!("{}/{}", config.get_storage_base_dir().clone(), TORII_DB),
-    ];
+    let args = config.get_torii_args();
 
     let result = task::spawn(async move {
         let output = File::create(TORII_LOG).expect("Failed to create file");

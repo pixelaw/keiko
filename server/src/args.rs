@@ -25,6 +25,7 @@ pub struct Config {
     pub server: ServerOptions,
     pub starknet: StarknetOptions,
     pub katana: KatanaOptions,
+    pub torii: ToriiOptions,
     pub world_address: String,
 }
 
@@ -35,6 +36,7 @@ impl From<KeikoArgs> for Config {
             server: args.server,
             starknet: args.starknet,
             katana: args.katana,
+            torii: args.torii,
             world_address: "".to_string(),
         }
     }
@@ -71,6 +73,10 @@ pub struct KeikoArgs {
     #[command(flatten)]
     #[command(next_help_heading = "Katana options")]
     pub katana: KatanaOptions,
+
+    #[command(flatten)]
+    #[command(next_help_heading = "Torii options")]
+    pub torii: ToriiOptions,
 }
 
 #[derive(Debug, Args, Clone)]
@@ -144,6 +150,19 @@ pub struct EnvironmentOptions {
 }
 
 #[derive(Debug, Args, Clone)]
+pub struct ToriiOptions {
+    #[arg(long)]
+    #[arg(value_name = "TORII_SEQUENCER_RPC")]
+    #[arg(help = "The sequencer rpc endpoint to index.")]
+    pub torii_sequencer_rpc: Option<Url>,
+
+    #[arg(long)]
+    #[arg(value_name = "TORII_EXTERNAL_URL")]
+    #[arg(help = "The external url of the Torii server, used when hosting")]
+    pub torii_external_url: Option<Url>,
+}
+
+#[derive(Debug, Args, Clone)]
 pub struct KatanaOptions {
     #[arg(long)]
     #[arg(help = "Don't print anything on startup.")]
@@ -211,6 +230,27 @@ impl Config {
 
     pub fn get_storage_base_dir(&self) -> String {
         format!("storage/{}", self.world_address)
+    }
+
+    pub fn get_torii_args(&self) -> Vec<String> {
+        let mut args = vec![
+            "--world".to_string(),
+            self.world_address.clone(),
+            "--database".to_string(),
+            format!("{}/{}", self.get_storage_base_dir().clone(), TORII_DB),
+        ];
+
+        if let Some(torii_external_url) = &self.torii.torii_external_url {
+            args.push("--external_url".to_string());
+            args.push(torii_external_url.to_string());
+        }
+
+        if let Some(sequencer_rpc) = &self.torii.torii_sequencer_rpc {
+            args.push("--rpc".to_string());
+            args.push(sequencer_rpc.to_string());
+        }
+
+        args
     }
 
     pub fn get_katana_args(&self) -> Vec<String> {
