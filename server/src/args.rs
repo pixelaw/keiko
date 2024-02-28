@@ -152,12 +152,12 @@ pub struct EnvironmentOptions {
 #[derive(Debug, Args, Clone)]
 pub struct ToriiOptions {
     #[arg(long)]
-    #[arg(value_name = "TORII_SEQUENCER_RPC")]
+    #[arg(env = "TORII_SEQUENCER_RPC")]
     #[arg(help = "The sequencer rpc endpoint to index.")]
     pub torii_sequencer_rpc: Option<Url>,
 
     #[arg(long)]
-    #[arg(value_name = "TORII_EXTERNAL_URL")]
+    #[arg(env = "TORII_EXTERNAL_URL")]
     #[arg(help = "The external url of the Torii server, used when hosting")]
     pub torii_external_url: Option<Url>,
 }
@@ -241,7 +241,7 @@ impl Config {
         ];
 
         if let Some(torii_external_url) = &self.torii.torii_external_url {
-            args.push("--external_url".to_string());
+            args.push("--external-url".to_string());
             args.push(torii_external_url.to_string());
         }
 
