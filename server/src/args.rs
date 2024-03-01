@@ -1,4 +1,3 @@
-use std::fs::File;
 use std::path::PathBuf;
 use clap::{Args, Parser};
 use jsonrpsee_http_client::{HttpClient, HttpClientBuilder};
@@ -6,18 +5,15 @@ use url::Url;
 use std::str::FromStr;
 use keiko_api::server_state;
 use std::net::SocketAddr;
-use serde_json::Value;
 
 const LOCAL_KATANA: &str = "http://0.0.0.0:5050";
 const LOCAL_TORII: &str = "http://0.0.0.0:8080";
-const KATANA_GENESIS_PATH: &str = "config/genesis.json";
 
 pub const KEIKO_ASSETS: &str = "static/keiko/assets";
 pub const KEIKO_INDEX: &str = "static/keiko/index.html";
 pub const KATANA_LOG: &str = "log/katana.log.json";
 pub const TORII_LOG: &str = "log/torii.log";
 pub const TORII_DB: &str = "torii.sqlite";
-pub const CONFIG_MANIFEST: &str = "config/manifest.json";
 
 
 #[derive(Debug, Clone)]
@@ -45,14 +41,7 @@ impl From<KeikoArgs> for Config {
 impl Config {
     pub fn new() -> Self {
         let keiko_args = KeikoArgs::parse();
-        let mut config = Self::from(keiko_args);
-
-        // Get the world address from the manifest
-        let manifest_json: Value = serde_json::from_reader(
-            File::open(CONFIG_MANIFEST).expect("File should open read only")
-        ).expect("Cannot parse config/manifest.json");
-
-        config.set_world_address(manifest_json["world"]["address"].as_str().unwrap().to_string());
+        let config = Self::from(keiko_args);
 
         config
     }
@@ -166,6 +155,11 @@ pub struct ToriiOptions {
 #[derive(Debug, Args, Clone)]
 pub struct KatanaOptions {
     #[arg(long)]
+    #[arg(help = "The world address Keiko uses")]
+    #[arg(env = "WORLD_ADDRESS")]
+    pub world_address: String,
+
+    #[arg(long)]
     #[arg(help = "Don't print anything on startup.")]
     pub katana_silent: bool,
 
@@ -181,6 +175,7 @@ pub struct KatanaOptions {
 
     #[arg(long)]
     #[arg(value_name = "PATH")]
+    #[arg(env = "KATANA_DB_DIR")]
     #[arg(help = "Directory path of the database to initialize from.")]
     #[arg(long_help = "Directory path of the database to initialize from. The path must either \
                        be an empty directory or a directory which already contains a previously \
@@ -225,18 +220,14 @@ pub struct KatanaOptions {
 
 
 impl Config {
-    pub fn set_world_address(&mut self, world_address: String) {
-        self.world_address = world_address;
-    }
-
     pub fn get_storage_base_dir(&self) -> String {
-        format!("storage/{}", self.world_address)
+        format!("storage/{}", self.katana.world_address)
     }
 
     pub fn get_torii_args(&self) -> Vec<String> {
         let mut args = vec![
             "--world".to_string(),
-            self.world_address.clone(),
+            self.katana.world_address.clone(),
             "--database".to_string(),
             format!("{}/{}", self.get_storage_base_dir().clone(), TORII_DB),
         ];
@@ -316,7 +307,7 @@ impl Config {
         }
 
         args.push("--genesis".to_string());
-        args.push(KATANA_GENESIS_PATH.to_string());
+        args.push(format!("{}/config/genesis.json", self.get_storage_base_dir()));
 
         args
     }
