@@ -13,6 +13,8 @@ use std::process::{Command, Stdio};
 use std::fs::File;
 use axum::body::Body;
 use args::{KATANA_LOG, KEIKO_ASSETS, KEIKO_INDEX, TORII_LOG};
+use std::fs;
+use std::path::Path;
 
 
 mod args;
@@ -29,6 +31,19 @@ async fn main() {
             .expect("Failed to build dashboard");
     }
 
+
+    let world_storage_dir = format!("storage/{}/", config.katana.world_address);
+
+    if !Path::new(&world_storage_dir).exists() || fs::read_dir(&world_storage_dir).unwrap().next().is_none() {
+        fs::create_dir_all("storage").unwrap();
+        Command::new("cp")
+            .arg("-r")
+            .arg("storage_init/")
+            .arg(&world_storage_dir)
+            .status()
+            .unwrap();
+    }
+
     let katana = start_katana(&config).await;
 
     let torii = start_torii(&config).await;
@@ -36,6 +51,7 @@ async fn main() {
     // TODO Modify the Scarb.toml if needed with world address
 
     // TODO Deploy Dojo/contracts if needed
+
 
     let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port.clone()));
 
