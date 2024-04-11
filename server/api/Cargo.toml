@@ -11,7 +11,11 @@ jsonrpsee-core = "0.20.3"
 jsonrpsee-http-client.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-starknet = "0.8.0"
 tokio.workspace = true
 url.workspace = true
 dojo-world.workspace = true
+starknet = "=0.9.0"
+cairo-lang-sierra-to-casm = "=2.5.4"
+cairo-lang-sierra-type-size = "=2.5.4"
+cairo-lang-sierra-gas = "=2.5.4"
+cairo-lang-sierra = "=2.5.4"
