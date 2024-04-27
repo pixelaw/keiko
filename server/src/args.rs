@@ -347,6 +347,7 @@ impl Config {
             rpc_url: self.rpc_url(),
             manifest_base_dir,
             torii_url: self.torii_url(),
+            world_address: self.katana.world_address.clone(),
         }
     }
 }

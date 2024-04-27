@@ -1981,6 +1981,7 @@ dependencies = [
 name = "keiko-api"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "axum",
  "cairo-lang-sierra",
  "cairo-lang-sierra-gas",
