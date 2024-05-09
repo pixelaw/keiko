@@ -60,11 +60,15 @@ RUN apt-get update && \
     git-all \
     build-essential \
     nano \
-    net-tools
+    net-tools \
+    cargo
 
 
 RUN apt-get autoremove && apt-get clean
 RUN npm i -g @import-meta-env/cli
+
+# Install rust
+#RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
 
 #Install Scarb
 RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh --output install.sh
@@ -95,7 +99,7 @@ WORKDIR /keiko
 COPY ./server/contracts ./contracts
 
 # Warm up the git cache for "sozo build"
-#RUN cd contracts && sozo build
+RUN cd contracts && sozo build
 
 # Server
 COPY --from=server_builder /app/server/target/release/keiko .
