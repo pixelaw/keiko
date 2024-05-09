@@ -18,7 +18,7 @@ COPY --from=dashboard_deps /app/node_modules ./node_modules
 # Build the webapp
 RUN yarn build --mode production
 
-FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+FROM lukemathwalker/cargo-chef:0.1.66-rust-slim-bookworm AS chef
 WORKDIR /app/server
 
 FROM chef AS server_planner
@@ -32,10 +32,6 @@ COPY ./server/Cargo.toml /app/server/Cargo.toml
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS server_builder
-
-## Install DEV dependencies and others.
-#RUN apt-get update -y && \
-#    apt-get install -y net-tools build-essential python3 python3-pip valgrind
 
 COPY --from=server_planner /app/server/recipe.json recipe.json
 
@@ -99,7 +95,7 @@ WORKDIR /keiko
 COPY ./server/contracts ./contracts
 
 # Warm up the git cache for "sozo build"
-RUN cd contracts && sozo build
+#RUN cd contracts && sozo build
 
 # Server
 COPY --from=server_builder /app/server/target/release/keiko .

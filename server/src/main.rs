@@ -86,10 +86,6 @@ fn create_router(config: &Config) -> Router<(), Body> {
         .route("/api/fund", get(katana::funds::handler))
         .route("/api/block", on(MethodFilter::POST, katana::block::handler))
         // .route("/api/accounts", get(katana::account::handler))
-        .route(
-            "/manifests/:app_name",
-            get(keiko::manifest::get_manifest),
-        )
         .route("/config", get(keiko::config::handler))
         .nest_service("/keiko/assets", get_service(ServeDir::new(KEIKO_ASSETS)))
         .nest_service("/keiko", get_service(ServeFile::new(KEIKO_INDEX)))

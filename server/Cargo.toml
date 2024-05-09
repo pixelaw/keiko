@@ -15,14 +15,14 @@ serde = "1.0.183"
 serde_json = "1.0.104"
 tokio = { version = "1.31.0", features = ["full"] }
 url = "2.5.0"
-dojo-world = { git = "https://github.com/dojoengine/dojo.git", tag = "v0.6.0", features = ["manifest"] }
-dojo-common = { git = "https://github.com/dojoengine/dojo.git", tag = "v0.6.0", features = [] }
+#dojo-world = { git = "https://github.com/dojoengine/dojo.git", tag = "0.7.0-alpha.1", features = ["manifest"] }
+dojo-common = { git = "https://github.com/dojoengine/dojo.git", tag = "0.7.0-alpha.1", features = [] }
 
 [dependencies]
 axum.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
-dojo-world.workspace = true
+#dojo-world.workspace = true
 jsonrpsee-http-client.workspace = true
 clap = { version = "4.4.8", features = ["derive", "env"] }
 keiko-api = { path = './api' }

@@ -1,5 +1,5 @@
 [package]
-cairo-version = "2.5.4"
+cairo-version = "=2.6.3"
 name = "dojo_examples"
 version = "0.5.1"
 
@@ -7,11 +7,14 @@ version = "0.5.1"
 sierra-replace-ids = true
 
 [dependencies]
-dojo = { git = "https://github.com/dojoengine/dojo", tag = "v0.6.0" }
+dojo = { git = "https://github.com/dojoengine/dojo", tag = "v0.7.0-alpha.1" }
 
 [[target.dojo]]
+build-external-contracts = []
 
 [tool.dojo]
+description = "example world"
+name = "example"
 initializer_class_hash = "0xbeef"
 
 [tool.dojo.env]
@@ -26,5 +29,4 @@ world_address = "0x33ac2f528bb97cc7b79148fd1756dc368be0e95d391d8c6d6473ecb60b456
 # account_address = "0x2"
 # private_key = "0xc1cf1490de1352865301bb8705143f3ef938f97fdf892f1090dcb5ac7bcd1d"
 
-[scripts]
-post_deploy = "unset DOJO_WORLD_ADDRESS && bash ./scripts/init_auth.sh"
+

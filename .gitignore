@@ -9,3 +9,4 @@ server/config/genesis.json
 server/log
 server/storage_init
 server/storage
+server/contracts/manifests
