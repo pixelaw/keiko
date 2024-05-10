@@ -232,7 +232,7 @@ impl Config {
             format!("{}/{}", self.get_storage_base_dir().clone(), TORII_DB),
         ];
 
-        args.push("--allowed-origins *".to_string());
+        args.push("--allowed-origins \"*\"".to_string());
 
         if let Some(torii_external_url) = &self.torii.torii_external_url {
             args.push("--external-url".to_string());
@@ -250,7 +250,7 @@ impl Config {
     pub fn get_katana_args(&self) -> Vec<String> {
         let mut args = vec![];
 
-        args.push("--allowed-origins *".to_string());
+        args.push("--allowed-origins \"*\"".to_string());
 
         args.push("--db-dir".to_string());
         args.push(format!("{}/katana-db", self.get_storage_base_dir()));
