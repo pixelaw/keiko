@@ -24,13 +24,6 @@ mod utils;
 async fn main() {
     let config = Config::new();
 
-    if config.server.prod {
-        Command::new("npx")
-            .args(vec!["import-meta-env", "-x", ".env.example", "-p", KEIKO_INDEX])
-            .output()
-            .expect("Failed to build dashboard");
-    }
-
 
     let world_storage_dir = format!("storage/{}/", config.katana.world_address);
 
@@ -38,7 +31,7 @@ async fn main() {
         fs::create_dir_all("storage").unwrap();
         Command::new("cp")
             .arg("-r")
-            .arg("storage_init/")
+            .arg(format!("storage_init/{}/", config.katana.world_address))
             .arg(&world_storage_dir)
             .status()
             .unwrap();
